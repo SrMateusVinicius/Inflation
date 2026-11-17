@@ -1,0 +1,59 @@
+/// Fato mensal em formato longo: 1 linha por mês × série SGS. Valores em fração decimal.
+table fIndicadores
+	lineageTag: 990af9e3-5adf-5ddb-972b-2bb0e262315e
+
+	/// Mês (aaaammdd) → dCalendario.
+	column DataKey
+		dataType: int64
+		isHidden
+		formatString: 0
+		lineageTag: 4900c076-f333-589c-823f-1c3957c6c0c4
+		summarizeBy: none
+		sourceColumn: DataKey
+
+		annotation SummarizationSetBy = User
+
+	/// Série → dIndicador.
+	column CodigoSGS
+		dataType: int64
+		isHidden
+		formatString: 0
+		lineageTag: b5eddd24-8702-541c-ac6d-f0cbd3153a83
+		summarizeBy: none
+		sourceColumn: CodigoSGS
+
+		annotation SummarizationSetBy = User
+
+	/// Valor da série em fração (0,0044 = 0,44%). Use as medidas.
+	column Valor
+		dataType: double
+		isHidden
+		formatString: 0.00%
+		lineageTag: 4938aa1a-4f76-5fc2-8279-4f07c9171866
+		summarizeBy: none
+		sourceColumn: Valor
+
+		annotation SummarizationSetBy = User
+
+	partition fIndicadores = m
+		mode: import
+		source =
+				let
+				    // Leitura do Parquet tipado da camada silver (GitHub raw; URL base fixa + RelativePath, refresh no Service sem gateway)
+				    Fonte = Parquet.Document ( Binary.Buffer ( Web.Contents ( "https://raw.githubusercontent.com", [ RelativePath = pRepositorio & "/dados/silver/fIndicadores.parquet" ] ) ) ),
+				    // Mantém só as colunas do modelo (protege contra colunas novas no arquivo)
+				    Colunas = Table.SelectColumns ( Fonte, { "DataKey", "CodigoSGS", "Valor" } ),
+				    // Reafirma os tipos (nenhuma coluna 'any')
+				    Tipos = Table.TransformColumnTypes (
+				        Colunas,
+				        {
+				            { "DataKey", Int64.Type },
+				            { "CodigoSGS", Int64.Type },
+				            { "Valor", type number }
+				        }
+				    )
+				in
+				    Tipos
+
+	annotation PBI_ResultType = Table
+

@@ -1,0 +1,91 @@
+/// Controle técnico da extração Python: data/hora da carga e último mês por fonte (página Metodologia).
+table _ControleCarga
+	lineageTag: 64396b85-77cc-50db-920e-7a47424bbe28
+
+	/// Fonte de dados (BCB-SGS, IBGE-SIDRA, BCB-Focus, CMN-Metas).
+	column Fonte
+		dataType: string
+		lineageTag: ed06a1ac-f075-512e-a838-a362aa005d6f
+		summarizeBy: none
+		sourceColumn: Fonte
+
+		annotation SummarizationSetBy = User
+
+	/// Data e hora da execução do Python.
+	column DataHoraCarga
+		dataType: dateTime
+		formatString: dd/mm/yyyy hh:nn
+		lineageTag: 26d99bed-8de4-5377-b6b1-63b74e0c3f83
+		summarizeBy: none
+		sourceColumn: DataHoraCarga
+
+		annotation SummarizationSetBy = User
+
+	/// Primeiro mês disponível na silver.
+	column PrimeiroMes
+		dataType: dateTime
+		formatString: mmm/yyyy
+		lineageTag: 87a7e197-d97a-55e6-bd11-849792e1bed8
+		summarizeBy: none
+		sourceColumn: PrimeiroMes
+
+		annotation SummarizationSetBy = User
+
+		annotation UnderlyingDateTimeDataType = Date
+
+	/// Último mês disponível na silver.
+	column UltimoMes
+		dataType: dateTime
+		formatString: mmm/yyyy
+		lineageTag: 387820ba-e2d8-5812-931d-ec31e59607c7
+		summarizeBy: none
+		sourceColumn: UltimoMes
+
+		annotation SummarizationSetBy = User
+
+		annotation UnderlyingDateTimeDataType = Date
+
+	/// Linhas gravadas na silver.
+	column Linhas
+		dataType: int64
+		formatString: #,0
+		lineageTag: 97d29ddb-58b5-53ac-a36b-f24a2355bed2
+		summarizeBy: none
+		sourceColumn: Linhas
+
+		annotation SummarizationSetBy = User
+
+	/// Tempo da etapa / versão.
+	column Observacao
+		dataType: string
+		lineageTag: 2cb1b5fb-776f-5a37-9a1e-0e82f06f2022
+		summarizeBy: none
+		sourceColumn: Observacao
+
+		annotation SummarizationSetBy = User
+
+	partition _ControleCarga = m
+		mode: import
+		source =
+				let
+				    // Leitura do Parquet tipado da camada silver (GitHub raw; URL base fixa + RelativePath, refresh no Service sem gateway)
+				    Fonte = Parquet.Document ( Binary.Buffer ( Web.Contents ( "https://raw.githubusercontent.com", [ RelativePath = pRepositorio & "/dados/silver/_controle_carga.parquet" ] ) ) ),
+				    // Mantém só as colunas do modelo (protege contra colunas novas no arquivo)
+				    Colunas = Table.SelectColumns ( Fonte, { "Fonte", "DataHoraCarga", "PrimeiroMes", "UltimoMes", "Linhas", "Observacao" } ),
+				    // Reafirma os tipos (nenhuma coluna 'any')
+				    Tipos = Table.TransformColumnTypes (
+				        Colunas,
+				        {
+				            { "Fonte", type text },
+				            { "DataHoraCarga", type datetime },
+				            { "PrimeiroMes", type date },
+				            { "UltimoMes", type date },
+				            { "Linhas", Int64.Type },
+				            { "Observacao", type text }
+				        }
+				    )
+				in
+				    Tipos
+
+	annotation PBI_ResultType = Table
+

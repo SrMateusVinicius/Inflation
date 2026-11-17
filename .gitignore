@@ -1,0 +1,27 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+
+# Dados brutos e logs (gerados a cada execução; os logs do Actions ficam como artefato)
+dados/bronze/*
+!dados/bronze/.gitkeep
+dados/silver/csv/
+logs/*
+!logs/.gitkeep
+
+# Power BI: arquivos locais ligados à máquina e cache de dados
+**/.pbi/localSettings.json
+**/.pbi/cache.abf
+*.pbix
+*.abf
+
+# Sistema
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Segredos (nunca versionar)
+.env
+*.env

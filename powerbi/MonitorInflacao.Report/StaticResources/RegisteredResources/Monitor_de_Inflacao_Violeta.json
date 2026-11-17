@@ -1,0 +1,121 @@
+{
+  "name": "Monitor de Inflação · Violeta",
+  "dataColors": [
+    "#8064F5",
+    "#B8A6FA",
+    "#3A3946",
+    "#5B45D6",
+    "#D9D0FD",
+    "#85838F",
+    "#9D8CF7",
+    "#C9C7D1",
+    "#6E6C78",
+    "#E7E0FF",
+    "#1F8F4E",
+    "#D14343"
+  ],
+  "background": "#FFFFFF",
+  "foreground": "#25242B",
+  "tableAccent": "#8064F5",
+  "good": "#1F8F4E",
+  "neutral": "#85838F",
+  "bad": "#D14343",
+  "maximum": "#8064F5",
+  "center": "#B8A6FA",
+  "minimum": "#E7E0FF",
+  "textClasses": {
+    "callout": {
+      "fontSize": 28,
+      "fontFace": "Segoe UI Semibold",
+      "color": "#25242B"
+    },
+    "title": {
+      "fontSize": 12,
+      "fontFace": "Segoe UI Semibold",
+      "color": "#25242B"
+    },
+    "header": {
+      "fontSize": 12,
+      "fontFace": "Segoe UI Semibold",
+      "color": "#25242B"
+    },
+    "label": {
+      "fontSize": 9,
+      "fontFace": "Segoe UI",
+      "color": "#85838F"
+    }
+  },
+  "visualStyles": {
+    "*": {
+      "*": {
+        "background": [
+          {
+            "show": true,
+            "color": {
+              "solid": {
+                "color": "#FFFFFF"
+              }
+            },
+            "transparency": 0
+          }
+        ],
+        "border": [
+          {
+            "show": true,
+            "color": {
+              "solid": {
+                "color": "#E8E8EF"
+              }
+            },
+            "radius": 16
+          }
+        ],
+        "dropShadow": [
+          {
+            "show": false
+          }
+        ],
+        "title": [
+          {
+            "fontColor": {
+              "solid": {
+                "color": "#25242B"
+              }
+            },
+            "fontSize": 12,
+            "fontFamily": "Segoe UI Semibold"
+          }
+        ],
+        "visualHeader": [
+          {
+            "show": false
+          }
+        ]
+      }
+    },
+    "page": {
+      "*": {
+        "background": [
+          {
+            "color": {
+              "solid": {
+                "color": "#F4F3F8"
+              }
+            },
+            "transparency": 0
+          }
+        ],
+        "outspace": [
+          {
+            "color": {
+              "solid": {
+                "color": "#F4F3F8"
+              }
+            },
+            "transparency": 0
+          }
+        ]
+      }
+    }
+  }
+}

@@ -1,0 +1,109 @@
+/// Dimensão dos indicadores do SGS/BCB (IPCA, INPC, IGP-M, livres, monitorados, Selic).
+table dIndicador
+	lineageTag: dd9d0a59-493d-5761-8db6-e10c6ead9904
+
+	/// Código da série no SGS/BCB (chave).
+	column CodigoSGS
+		dataType: int64
+		isHidden
+		formatString: 0
+		lineageTag: 4e1ba6c7-f0ca-5910-b040-3bb605cc1a1a
+		summarizeBy: none
+		sourceColumn: CodigoSGS
+
+		annotation SummarizationSetBy = User
+
+	/// Nome curto do indicador.
+	column Indicador
+		dataType: string
+		lineageTag: 25604e65-da14-5a05-a856-a15b2b90f781
+		summarizeBy: none
+		sourceColumn: Indicador
+		sortByColumn: Ordem
+
+		annotation SummarizationSetBy = User
+
+	/// Inflação ou Juros.
+	column Categoria
+		dataType: string
+		lineageTag: ed5afc17-2089-501a-9220-5df554d09c56
+		summarizeBy: none
+		sourceColumn: Categoria
+
+		annotation SummarizationSetBy = User
+
+	/// Origem do dado (BCB-SGS).
+	column Fonte
+		dataType: string
+		lineageTag: 147f4fa7-43e1-510a-a9ad-2987061f56a0
+		summarizeBy: none
+		sourceColumn: Fonte
+
+		annotation SummarizationSetBy = User
+
+	/// Unidade original (% a.m., % a.a., % 12 meses).
+	column Unidade
+		dataType: string
+		lineageTag: cbad2f87-a858-5261-86a8-f7ae280c3dfd
+		summarizeBy: none
+		sourceColumn: Unidade
+
+		annotation SummarizationSetBy = User
+
+	/// Mensal (compõe acumulados), Acumulada 12M ou Anualizada.
+	column TipoTaxa
+		dataType: string
+		isHidden
+		lineageTag: 69724f8c-5f57-51c6-8899-d97d5bae4206
+		summarizeBy: none
+		sourceColumn: TipoTaxa
+
+		annotation SummarizationSetBy = User
+
+	/// Ordem de exibição.
+	column Ordem
+		dataType: int64
+		isHidden
+		formatString: 0
+		lineageTag: 9e9c02fe-d1bc-5180-adfa-e430f92ad239
+		summarizeBy: none
+		sourceColumn: Ordem
+
+		annotation SummarizationSetBy = User
+
+	/// Descrição completa da série.
+	column Descricao
+		dataType: string
+		lineageTag: e11a121c-ea26-5b94-9363-2c2e9a0152a7
+		summarizeBy: none
+		sourceColumn: Descricao
+
+		annotation SummarizationSetBy = User
+
+	partition dIndicador = m
+		mode: import
+		source =
+				let
+				    // Leitura do Parquet tipado da camada silver (GitHub raw; URL base fixa + RelativePath, refresh no Service sem gateway)
+				    Fonte = Parquet.Document ( Binary.Buffer ( Web.Contents ( "https://raw.githubusercontent.com", [ RelativePath = pRepositorio & "/dados/silver/dIndicador.parquet" ] ) ) ),
+				    // Mantém só as colunas do modelo (protege contra colunas novas no arquivo)
+				    Colunas = Table.SelectColumns ( Fonte, { "CodigoSGS", "Indicador", "Categoria", "Fonte", "Unidade", "TipoTaxa", "Ordem", "Descricao" } ),
+				    // Reafirma os tipos (nenhuma coluna 'any')
+				    Tipos = Table.TransformColumnTypes (
+				        Colunas,
+				        {
+				            { "CodigoSGS", Int64.Type },
+				            { "Indicador", type text },
+				            { "Categoria", type text },
+				            { "Fonte", type text },
+				            { "Unidade", type text },
+				            { "TipoTaxa", type text },
+				            { "Ordem", Int64.Type },
+				            { "Descricao", type text }
+				        }
+				    )
+				in
+				    Tipos
+
+	annotation PBI_ResultType = Table
+

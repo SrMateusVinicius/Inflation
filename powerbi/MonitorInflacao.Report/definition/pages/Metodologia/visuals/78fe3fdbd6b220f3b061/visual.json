@@ -1,0 +1,278 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/2.13.0/schema.json",
+  "name": "78fe3fdbd6b220f3b061",
+  "position": {
+    "x": 24,
+    "y": 410,
+    "z": 4000,
+    "height": 290,
+    "width": 608,
+    "tabOrder": 4000
+  },
+  "visual": {
+    "visualType": "textbox",
+    "objects": {
+      "general": [
+        {
+          "properties": {
+            "paragraphs": [
+              {
+                "textRuns": [
+                  {
+                    "value": "Regras de cálculo",
+                    "textStyle": {
+                      "fontSize": "12pt",
+                      "fontFamily": "Segoe UI",
+                      "color": "#25242B",
+                      "fontWeight": "bold"
+                    }
+                  }
+                ]
+              },
+              {
+                "textRuns": [
+                  {
+                    "value": "• Acumulados sempre compostos: Π(1 + taxa mensal) − 1. Taxas mensais nunca são somadas.",
+                    "textStyle": {
+                      "fontSize": "9.5pt",
+                      "fontFamily": "Segoe UI",
+                      "color": "#85838F"
+                    }
+                  }
+                ]
+              },
+              {
+                "textRuns": [
+                  {
+                    "value": "• 12 meses só é exibido com 12 meses publicados; conferido com a série oficial SGS 13522.",
+                    "textStyle": {
+                      "fontSize": "9.5pt",
+                      "fontFamily": "Segoe UI",
+                      "color": "#85838F"
+                    }
+                  }
+                ]
+              },
+              {
+                "textRuns": [
+                  {
+                    "value": "• Diferenças entre taxas são mostradas em pontos percentuais (p.p.), não em variação relativa.",
+                    "textStyle": {
+                      "fontSize": "9.5pt",
+                      "fontFamily": "Segoe UI",
+                      "color": "#85838F"
+                    }
+                  }
+                ]
+              },
+              {
+                "textRuns": [
+                  {
+                    "value": "• Contribuição do grupo = variação do grupo × peso IBGE do mês; a soma reconstrói o IPCA.",
+                    "textStyle": {
+                      "fontSize": "9.5pt",
+                      "fontFamily": "Segoe UI",
+                      "color": "#85838F"
+                    }
+                  }
+                ]
+              },
+              {
+                "textRuns": [
+                  {
+                    "value": "• Maior variação (%) ≠ maior contribuição (p.p.): um grupo pequeno pode subir muito e pesar pouco.",
+                    "textStyle": {
+                      "fontSize": "9.5pt",
+                      "fontFamily": "Segoe UI",
+                      "color": "#85838F"
+                    }
+                  }
+                ]
+              },
+              {
+                "textRuns": [
+                  {
+                    "value": "• Meta: CMN — ano-calendário até 2024; contínua (12 meses) a partir de 2025.",
+                    "textStyle": {
+                      "fontSize": "9.5pt",
+                      "fontFamily": "Segoe UI",
+                      "color": "#85838F"
+                    }
+                  }
+                ]
+              },
+              {
+                "textRuns": [
+                  {
+                    "value": "• Último período econômico (mês da taxa) ≠ data de atualização da base (carga).",
+                    "textStyle": {
+                      "fontSize": "9.5pt",
+                      "fontFamily": "Segoe UI",
+                      "color": "#85838F"
+                    }
+                  }
+                ]
+              },
+              {
+                "textRuns": [
+                  {
+                    "value": "• Seletor de indicador: IPCA, INPC, IGP-M, Livres, Monitorados; sem seleção = IPCA.",
+                    "textStyle": {
+                      "fontSize": "9.5pt",
+                      "fontFamily": "Segoe UI",
+                      "color": "#85838F"
+                    }
+                  }
+                ]
+              }
+            ]
+          }
+        }
+      ]
+    },
+    "visualContainerObjects": {
+      "background": [
+        {
+          "properties": {
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "true"
+                }
+              }
+            },
+            "color": {
+              "solid": {
+                "color": {
+                  "expr": {
+                    "Literal": {
+                      "Value": "'#FFFFFF'"
+                    }
+                  }
+                }
+              }
+            },
+            "transparency": {
+              "expr": {
+                "Literal": {
+                  "Value": "0D"
+                }
+              }
+            }
+          }
+        }
+      ],
+      "border": [
+        {
+          "properties": {
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "true"
+                }
+              }
+            },
+            "color": {
+              "solid": {
+                "color": {
+                  "expr": {
+                    "Literal": {
+                      "Value": "'#E8E8EF'"
+                    }
+                  }
+                }
+              }
+            },
+            "radius": {
+              "expr": {
+                "Literal": {
+                  "Value": "16D"
+                }
+              }
+            },
+            "width": {
+              "expr": {
+                "Literal": {
+                  "Value": "1D"
+                }
+              }
+            }
+          }
+        }
+      ],
+      "dropShadow": [
+        {
+          "properties": {
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "false"
+                }
+              }
+            }
+          }
+        }
+      ],
+      "visualHeader": [
+        {
+          "properties": {
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "false"
+                }
+              }
+            }
+          }
+        }
+      ],
+      "title": [
+        {
+          "properties": {
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "false"
+                }
+              }
+            }
+          }
+        }
+      ],
+      "padding": [
+        {
+          "properties": {
+            "top": {
+              "expr": {
+                "Literal": {
+                  "Value": "14D"
+                }
+              }
+            },
+            "bottom": {
+              "expr": {
+                "Literal": {
+                  "Value": "14D"
+                }
+              }
+            },
+            "left": {
+              "expr": {
+                "Literal": {
+                  "Value": "18D"
+                }
+              }
+            },
+            "right": {
+              "expr": {
+                "Literal": {
+                  "Value": "18D"
+                }
+              }
+            }
+          }
+        }
+      ]
+    }
+  }
+}

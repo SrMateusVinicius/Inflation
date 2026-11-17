@@ -1,0 +1,6 @@
+/// Repositório GitHub (usuário/repositório/branch) de onde os Parquets da camada silver são lidos.
+expression pRepositorio = "SrMateusVinicius/Inflation/main" meta [IsParameterQuery=true, Type="Text", IsParameterQueryRequired=true]
+	lineageTag: 5d746cc1-3fd9-582c-a07f-febd25b0b20c
+
+	annotation PBI_ResultType = Text
+

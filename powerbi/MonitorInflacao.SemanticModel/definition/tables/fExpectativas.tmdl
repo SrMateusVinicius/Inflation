@@ -1,0 +1,107 @@
+/// Fato das expectativas Focus para o IPCA anual: última coleta de cada mês × ano de referência.
+table fExpectativas
+	lineageTag: 7641b9dc-0716-5859-92f3-2ce188444364
+
+	/// Mês da coleta (aaaammdd) → dCalendario.
+	column DataColetaKey
+		dataType: int64
+		isHidden
+		formatString: 0
+		lineageTag: 9a8bf3d3-dc44-5a08-bc1e-98e6d6f808be
+		summarizeBy: none
+		sourceColumn: DataColetaKey
+
+		annotation SummarizationSetBy = User
+
+	/// Ano para o qual a expectativa foi feita.
+	column AnoReferencia
+		dataType: int64
+		formatString: 0
+		lineageTag: 311fa073-54dd-52a5-9187-e501fbb0810f
+		summarizeBy: none
+		sourceColumn: AnoReferencia
+
+		annotation SummarizationSetBy = User
+
+	/// Data exata da última coleta do mês.
+	column DataColeta
+		dataType: dateTime
+		formatString: dd/mm/yyyy
+		lineageTag: e94554ae-5669-57f1-83df-f051390c6ac3
+		summarizeBy: none
+		sourceColumn: DataColeta
+
+		annotation SummarizationSetBy = User
+
+		annotation UnderlyingDateTimeDataType = Date
+
+	/// Mediana das projeções (fração).
+	column Mediana
+		dataType: double
+		isHidden
+		formatString: 0.00%
+		lineageTag: 66e3e171-72e1-564b-86d5-00f561913b7e
+		summarizeBy: none
+		sourceColumn: Mediana
+
+		annotation SummarizationSetBy = User
+
+	/// Média das projeções (fração).
+	column Media
+		dataType: double
+		isHidden
+		formatString: 0.00%
+		lineageTag: e51d29c3-cb8e-5bf4-b9e1-fb90e9da408e
+		summarizeBy: none
+		sourceColumn: Media
+
+		annotation SummarizationSetBy = User
+
+	/// Menor projeção (fração).
+	column Minimo
+		dataType: double
+		isHidden
+		formatString: 0.00%
+		lineageTag: 7579fe8f-4dbf-5d06-8647-1e24dcf5d440
+		summarizeBy: none
+		sourceColumn: Minimo
+
+		annotation SummarizationSetBy = User
+
+	/// Maior projeção (fração).
+	column Maximo
+		dataType: double
+		isHidden
+		formatString: 0.00%
+		lineageTag: ea83ca45-1c66-5c6a-893e-4f5ed0d3a858
+		summarizeBy: none
+		sourceColumn: Maximo
+
+		annotation SummarizationSetBy = User
+
+	partition fExpectativas = m
+		mode: import
+		source =
+				let
+				    // Leitura do Parquet tipado da camada silver (GitHub raw; URL base fixa + RelativePath, refresh no Service sem gateway)
+				    Fonte = Parquet.Document ( Binary.Buffer ( Web.Contents ( "https://raw.githubusercontent.com", [ RelativePath = pRepositorio & "/dados/silver/fExpectativas.parquet" ] ) ) ),
+				    // Mantém só as colunas do modelo (protege contra colunas novas no arquivo)
+				    Colunas = Table.SelectColumns ( Fonte, { "DataColetaKey", "AnoReferencia", "DataColeta", "Mediana", "Media", "Minimo", "Maximo" } ),
+				    // Reafirma os tipos (nenhuma coluna 'any')
+				    Tipos = Table.TransformColumnTypes (
+				        Colunas,
+				        {
+				            { "DataColetaKey", Int64.Type },
+				            { "AnoReferencia", Int64.Type },
+				            { "DataColeta", type date },
+				            { "Mediana", type number },
+				            { "Media", type number },
+				            { "Minimo", type number },
+				            { "Maximo", type number }
+				        }
+				    )
+				in
+				    Tipos
+
+	annotation PBI_ResultType = Table
+

@@ -1,0 +1,88 @@
+/// Metas de inflação do CMN por ano (frações). DESCONECTADA: lida pelas medidas da pasta 03 Meta (ver README).
+table dMeta
+	lineageTag: 6c50a3ae-3be8-545c-a359-374d8644abe6
+
+	/// Ano da meta.
+	column Ano
+		dataType: int64
+		formatString: 0
+		lineageTag: 9d413446-4de1-59fd-9ad2-4c1ccb9a515d
+		summarizeBy: none
+		sourceColumn: Ano
+
+		annotation SummarizationSetBy = User
+
+	/// Centro da meta (fração: 0,03 = 3%).
+	column Meta
+		dataType: double
+		formatString: 0.00%
+		lineageTag: cf980994-6556-5823-b390-08483937b15b
+		summarizeBy: none
+		sourceColumn: Meta
+
+		annotation SummarizationSetBy = User
+
+	/// Piso do intervalo de tolerância.
+	column LimiteInferior
+		dataType: double
+		formatString: 0.00%
+		lineageTag: cda787e5-a48b-5170-a303-1a387f714b58
+		summarizeBy: none
+		sourceColumn: LimiteInferior
+
+		annotation SummarizationSetBy = User
+
+	/// Teto do intervalo de tolerância.
+	column LimiteSuperior
+		dataType: double
+		formatString: 0.00%
+		lineageTag: 1bef6911-2d48-5869-8fca-cca3b118608c
+		summarizeBy: none
+		sourceColumn: LimiteSuperior
+
+		annotation SummarizationSetBy = User
+
+	/// Tolerância em fração (0,015 = 1,5 p.p.).
+	column Tolerancia
+		dataType: double
+		formatString: 0.00%
+		lineageTag: 0c7088d9-6935-5ed1-a41c-16276a4ef7da
+		summarizeBy: none
+		sourceColumn: Tolerancia
+
+		annotation SummarizationSetBy = User
+
+	/// Ano-calendário (até 2024) ou Contínua (desde 2025).
+	column TipoMeta
+		dataType: string
+		lineageTag: 867e8a30-d80b-5b19-9c51-0bbf491d556d
+		summarizeBy: none
+		sourceColumn: TipoMeta
+
+		annotation SummarizationSetBy = User
+
+	partition dMeta = m
+		mode: import
+		source =
+				let
+				    // Leitura do Parquet tipado da camada silver (GitHub raw; URL base fixa + RelativePath, refresh no Service sem gateway)
+				    Fonte = Parquet.Document ( Binary.Buffer ( Web.Contents ( "https://raw.githubusercontent.com", [ RelativePath = pRepositorio & "/dados/silver/dMeta.parquet" ] ) ) ),
+				    // Mantém só as colunas do modelo (protege contra colunas novas no arquivo)
+				    Colunas = Table.SelectColumns ( Fonte, { "Ano", "Meta", "LimiteInferior", "LimiteSuperior", "Tolerancia", "TipoMeta" } ),
+				    // Reafirma os tipos (nenhuma coluna 'any')
+				    Tipos = Table.TransformColumnTypes (
+				        Colunas,
+				        {
+				            { "Ano", Int64.Type },
+				            { "Meta", type number },
+				            { "LimiteInferior", type number },
+				            { "LimiteSuperior", type number },
+				            { "Tolerancia", type number },
+				            { "TipoMeta", type text }
+				        }
+				    )
+				in
+				    Tipos
+
+	annotation PBI_ResultType = Table
+

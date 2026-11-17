@@ -1,0 +1,3011 @@
+/// Tabela de medidas: vazia, contém apenas as medidas do relatório organizadas em pastas de exibição.
+table _Medidas
+	lineageTag: d4418a8f-5629-5f49-8e30-6b31cd1c54e7
+
+	/// Mês-base dos cálculos do(s) indicador(es) SGS em contexto.
+	measure '_Data Referência' =
+			-- =============================================================
+			-- _Data Referência
+			-- Objetivo : mês-base dos cálculos do(s) indicador(es) SGS em contexto.
+			-- Regra    : último mês do contexto, limitado ao último mês com dado publicado.
+			--            Se TODO o contexto for posterior ao último dado, retorna BLANK
+			--            (evita repetir o último valor em meses futuros do eixo).
+			--            Num contexto anual (ex.: 2026 incompleto) devolve o último mês com dado.
+			-- =============================================================
+			VAR _MinContexto = MIN ( dCalendario[Data] )
+			VAR _MaxContexto = MAX ( dCalendario[Data] )
+			VAR _UltimaKey =
+			    CALCULATE (
+			        MAX ( fIndicadores[DataKey] ),
+			        REMOVEFILTERS ( dCalendario )
+			    )
+			VAR _UltimaData =
+			    IF (
+			        NOT ISBLANK ( _UltimaKey ),
+			        DATE ( QUOTIENT ( _UltimaKey, 10000 ), MOD ( QUOTIENT ( _UltimaKey, 100 ), 100 ), 1 )
+			    )
+			RETURN
+			    IF (
+			        NOT ISBLANK ( _UltimaData ) && _MinContexto <= _UltimaData,
+			        MIN ( _MaxContexto, _UltimaData )
+			    )
+		formatString: dd/mm/yyyy
+		isHidden
+		displayFolder: 08 Auxiliares
+		lineageTag: 9f47fd59-dcf5-520c-bd6c-fc10a89d4ee3
+
+	/// Mês-base dos cálculos por grupo do IPCA (SIDRA).
+	measure '_Data Referência Grupos' =
+			-- =============================================================
+			-- _Data Referência Grupos
+			-- Objetivo : mês-base dos cálculos por grupo do IPCA (SIDRA).
+			-- Regra    : último mês do contexto, limitado ao último mês com dado publicado.
+			--            Se TODO o contexto for posterior ao último dado, retorna BLANK
+			--            (evita repetir o último valor em meses futuros do eixo).
+			--            Num contexto anual (ex.: 2026 incompleto) devolve o último mês com dado.
+			-- =============================================================
+			VAR _MinContexto = MIN ( dCalendario[Data] )
+			VAR _MaxContexto = MAX ( dCalendario[Data] )
+			VAR _UltimaKey =
+			    CALCULATE (
+			        MAX ( fIPCAGrupos[DataKey] ),
+			        REMOVEFILTERS ( dCalendario ),
+			        REMOVEFILTERS ( dGrupoIPCA )
+			    )
+			VAR _UltimaData =
+			    IF (
+			        NOT ISBLANK ( _UltimaKey ),
+			        DATE ( QUOTIENT ( _UltimaKey, 10000 ), MOD ( QUOTIENT ( _UltimaKey, 100 ), 100 ), 1 )
+			    )
+			RETURN
+			    IF (
+			        NOT ISBLANK ( _UltimaData ) && _MinContexto <= _UltimaData,
+			        MIN ( _MaxContexto, _UltimaData )
+			    )
+		formatString: dd/mm/yyyy
+		isHidden
+		displayFolder: 08 Auxiliares
+		lineageTag: 0a58da6b-3638-58bf-93fa-1c0e4d7dd59f
+
+	/// Mês de coleta de referência das expectativas Focus.
+	measure '_Data Referência Focus' =
+			-- =============================================================
+			-- _Data Referência Focus
+			-- Objetivo : mês de coleta de referência das expectativas Focus.
+			-- Regra    : último mês do contexto, limitado ao último mês com dado publicado.
+			--            Se TODO o contexto for posterior ao último dado, retorna BLANK
+			--            (evita repetir o último valor em meses futuros do eixo).
+			--            Num contexto anual (ex.: 2026 incompleto) devolve o último mês com dado.
+			-- =============================================================
+			VAR _MinContexto = MIN ( dCalendario[Data] )
+			VAR _MaxContexto = MAX ( dCalendario[Data] )
+			VAR _UltimaKey =
+			    CALCULATE (
+			        MAX ( fExpectativas[DataColetaKey] ),
+			        REMOVEFILTERS ( dCalendario )
+			    )
+			VAR _UltimaData =
+			    IF (
+			        NOT ISBLANK ( _UltimaKey ),
+			        DATE ( QUOTIENT ( _UltimaKey, 10000 ), MOD ( QUOTIENT ( _UltimaKey, 100 ), 100 ), 1 )
+			    )
+			RETURN
+			    IF (
+			        NOT ISBLANK ( _UltimaData ) && _MinContexto <= _UltimaData,
+			        MIN ( _MaxContexto, _UltimaData )
+			    )
+		formatString: dd/mm/yyyy
+		isHidden
+		displayFolder: 08 Auxiliares
+		lineageTag: 2e234603-2637-54bd-8e17-e033eda93a31
+
+	/// Mês-base do IPCA (SGS 433), usado por meta, comparativos e textos.
+	measure '_Data Referência IPCA' =
+			-- =============================================================
+			-- _Data Referência IPCA
+			-- Objetivo : mês-base do IPCA (SGS 433), usado por meta, comparativos e textos.
+			-- =============================================================
+			CALCULATE (
+			    [_Data Referência],
+			    REMOVEFILTERS ( dIndicador ),
+			    dIndicador[CodigoSGS] = 433
+			)
+		formatString: dd/mm/yyyy
+		isHidden
+		displayFolder: 08 Auxiliares
+		lineageTag: 0f1a4ffd-9f15-57c7-b1b5-a3211395b79a
+
+	/// Valor mensal do indicador, sem deslocar datas (uso interno em iteradores).
+	measure '_Valor Bruto' =
+			-- =============================================================
+			-- _Valor Bruto
+			-- Objetivo : valor do indicador no(s) mês(es) do contexto, sem nenhum ajuste de data.
+			-- Uso      : APENAS dentro de iteradores mês a mês (PRODUCTX / FILTER), onde o contexto
+			--            já é um único mês. Exige um único indicador: somar taxas de séries
+			--            diferentes não tem significado econômico.
+			-- =============================================================
+			IF (
+			    HASONEVALUE ( dIndicador[CodigoSGS] ),
+			    SUM ( fIndicadores[Valor] )
+			)
+		formatString: 0.0000%
+		isHidden
+		displayFolder: 08 Auxiliares
+		lineageTag: 10ae0c0b-50ff-5734-ab54-9f7910798d47
+
+	/// TRUE se o indicador em contexto é taxa mensal (pode ser composta).
+	measure '_Indicador Composto' =
+			-- =============================================================
+			-- _Indicador Composto
+			-- Objetivo : proteger os acumulados de séries que NÃO podem ser compostas
+			--            (IPCA 12M oficial e Selic % a.a.).
+			-- =============================================================
+			SELECTEDVALUE ( dIndicador[TipoTaxa] ) = "Mensal"
+		isHidden
+		displayFolder: 08 Auxiliares
+		lineageTag: d6a9f938-4555-5342-bc12-9b84af7b5046
+
+	/// Variação mensal do indicador selecionado (dIndicador) no mês de referência.
+	measure 'Indicador Mensal %' =
+			-- =============================================================
+			-- Indicador Mensal %
+			-- Objetivo : valor mensal do indicador em contexto (use com dIndicador na legenda).
+			-- Regra    : lê o valor do mês de referência ([_Data Referência]); num contexto de
+			--            vários meses (ex.: um ano), devolve o último mês com dado.
+			-- =============================================================
+			VAR _Data = [_Data Referência]
+			RETURN
+			    IF (
+			        NOT ISBLANK ( _Data ),
+			        CALCULATE (
+			            [_Valor Bruto],
+			            REMOVEFILTERS ( dCalendario ),
+			            dCalendario[Data] = _Data
+			        )
+			    )
+		formatString: 0.00%
+		displayFolder: 01 Base
+		lineageTag: a4f92969-afe7-588e-9a8d-1d365d7033ec
+
+	/// Variação mensal do IPCA no mês de referência.
+	measure 'IPCA Mensal %' =
+			-- =============================================================
+			-- IPCA Mensal %
+			-- Objetivo : variação mensal do IPCA no mês de referência.
+			-- Regra    : aplica [Indicador Mensal %] fixando a série SGS 433 (IPCA).
+			--            A lógica fica na medida genérica (uma única fonte de verdade).
+			-- =============================================================
+			CALCULATE (
+			    [Indicador Mensal %],
+			    REMOVEFILTERS ( dIndicador ),
+			    dIndicador[CodigoSGS] = 433    -- IPCA
+			)
+		formatString: 0.00%
+		displayFolder: 01 Base
+		lineageTag: 5c9f2e7e-88ae-529e-bdeb-c3a82d66d642
+
+	/// Variação mensal do INPC no mês de referência.
+	measure 'INPC Mensal %' =
+			-- =============================================================
+			-- INPC Mensal %
+			-- Objetivo : variação mensal do INPC no mês de referência.
+			-- Regra    : aplica [Indicador Mensal %] fixando a série SGS 188 (INPC).
+			--            A lógica fica na medida genérica (uma única fonte de verdade).
+			-- =============================================================
+			CALCULATE (
+			    [Indicador Mensal %],
+			    REMOVEFILTERS ( dIndicador ),
+			    dIndicador[CodigoSGS] = 188    -- INPC
+			)
+		formatString: 0.00%
+		displayFolder: 01 Base
+		lineageTag: 57d95e7e-c7f3-5d05-b8e1-11a2ce1284ab
+
+	/// Variação mensal do IGP-M no mês de referência.
+	measure 'IGP-M Mensal %' =
+			-- =============================================================
+			-- IGP-M Mensal %
+			-- Objetivo : variação mensal do IGP-M no mês de referência.
+			-- Regra    : aplica [Indicador Mensal %] fixando a série SGS 189 (IGP-M).
+			--            A lógica fica na medida genérica (uma única fonte de verdade).
+			-- =============================================================
+			CALCULATE (
+			    [Indicador Mensal %],
+			    REMOVEFILTERS ( dIndicador ),
+			    dIndicador[CodigoSGS] = 189    -- IGP-M
+			)
+		formatString: 0.00%
+		displayFolder: 01 Base
+		lineageTag: c72941bb-cea5-5b8d-a80d-d16591088c6b
+
+	/// Variação mensal dos preços livres do IPCA.
+	measure 'IPCA Livres %' =
+			-- =============================================================
+			-- IPCA Livres %
+			-- Objetivo : variação mensal dos preços livres do IPCA.
+			-- Regra    : aplica [Indicador Mensal %] fixando a série SGS 11428 (IPCA itens livres).
+			--            A lógica fica na medida genérica (uma única fonte de verdade).
+			-- =============================================================
+			CALCULATE (
+			    [Indicador Mensal %],
+			    REMOVEFILTERS ( dIndicador ),
+			    dIndicador[CodigoSGS] = 11428    -- IPCA itens livres
+			)
+		formatString: 0.00%
+		displayFolder: 01 Base
+		lineageTag: 444dab85-e62b-58e5-98d9-d0c6b76cc0a8
+
+	/// Variação mensal dos preços monitorados do IPCA.
+	measure 'IPCA Monitorados %' =
+			-- =============================================================
+			-- IPCA Monitorados %
+			-- Objetivo : variação mensal dos preços monitorados do IPCA.
+			-- Regra    : aplica [Indicador Mensal %] fixando a série SGS 4449 (IPCA monitorados).
+			--            A lógica fica na medida genérica (uma única fonte de verdade).
+			-- =============================================================
+			CALCULATE (
+			    [Indicador Mensal %],
+			    REMOVEFILTERS ( dIndicador ),
+			    dIndicador[CodigoSGS] = 4449    -- IPCA monitorados
+			)
+		formatString: 0.00%
+		displayFolder: 01 Base
+		lineageTag: 3fe17339-16df-5917-8702-7bb9e0ad0f99
+
+	/// Selic acumulada no mês, anualizada (% a.a.).
+	measure 'Selic % a.a.' =
+			-- =============================================================
+			-- Selic % a.a.
+			-- Objetivo : Selic acumulada no mês, anualizada (% a.a.).
+			-- Regra    : aplica [Indicador Mensal %] fixando a série SGS 4189 (Selic anualizada).
+			--            A lógica fica na medida genérica (uma única fonte de verdade).
+			-- =============================================================
+			CALCULATE (
+			    [Indicador Mensal %],
+			    REMOVEFILTERS ( dIndicador ),
+			    dIndicador[CodigoSGS] = 4189    -- Selic anualizada
+			)
+		formatString: 0.00%
+		displayFolder: 01 Base
+		lineageTag: 5a2c65ce-6485-5937-bb37-7dd963c1fe8d
+
+	/// Selic efetiva do mês (% a.m.), base do Selic 12M.
+	measure 'Selic Mensal %' =
+			-- =============================================================
+			-- Selic Mensal %
+			-- Objetivo : Selic efetiva do mês (% a.m.), base do Selic 12M.
+			-- Regra    : aplica [Indicador Mensal %] fixando a série SGS 4390 (Selic % a.m.).
+			--            A lógica fica na medida genérica (uma única fonte de verdade).
+			-- =============================================================
+			CALCULATE (
+			    [Indicador Mensal %],
+			    REMOVEFILTERS ( dIndicador ),
+			    dIndicador[CodigoSGS] = 4390    -- Selic % a.m.
+			)
+		formatString: 0.00%
+		displayFolder: 01 Base
+		lineageTag: daa4d437-9cb4-57a8-97df-df2bf79dba42
+
+	/// Último mês com IPCA publicado (flag da dCalendario).
+	measure 'Último Mês Disponível' =
+			-- =============================================================
+			-- Último Mês Disponível
+			-- Objetivo : último mês com IPCA publicado, independente dos filtros de período.
+			-- Regra    : lê a flag EhUltimoMesDisponivel, calculada no Power Query.
+			-- =============================================================
+			CALCULATE (
+			    MAX ( dCalendario[Data] ),
+			    REMOVEFILTERS ( dCalendario ),
+			    dCalendario[EhUltimoMesDisponivel] = TRUE ()
+			)
+		formatString: mmm/yyyy
+		displayFolder: 01 Base
+		lineageTag: e315edb7-4628-5c3a-ac5e-ef7b19df7493
+
+	/// Acumulado no ano (composto) do indicador em contexto até o mês de referência.
+	measure 'Indicador Acum. Ano %' =
+			-- =============================================================
+			-- Indicador Acum. Ano %
+			-- Objetivo : inflação acumulada de janeiro até o mês de referência.
+			-- Regra    : produto (1 + variação mensal) - 1 — composto, NUNCA somado.
+			--            REMOVEFILTERS(dCalendario) garante o período correto mesmo com
+			--            filtros de Mês/Trimestre vindos do visual.
+			-- =============================================================
+			VAR _DataFim    = [_Data Referência]
+			VAR _DataInicio = DATE ( YEAR ( _DataFim ), 1, 1 )
+			VAR _Fator      =
+			    CALCULATE (
+			        PRODUCTX (
+			            VALUES ( dCalendario[Data] ),
+			            1 + [_Valor Bruto]
+			        ),
+			        REMOVEFILTERS ( dCalendario ),
+			        dCalendario[Data] >= _DataInicio,
+			        dCalendario[Data] <= _DataFim
+			    )
+			RETURN
+			    IF ( NOT ISBLANK ( _DataFim ) && [_Indicador Composto], _Fator - 1 )
+		formatString: 0.00%
+		displayFolder: 02 Acumulados
+		lineageTag: c43f460d-80c6-55b7-a790-8fac630a55a7
+
+	/// Acumulado em 12 meses (composto) do indicador em contexto.
+	measure 'Indicador 12M %' =
+			-- =============================================================
+			-- Indicador 12M %
+			-- Objetivo : inflação acumulada nos 12 meses até o mês de referência.
+			-- Regra    : produto (1 + variação mensal) - 1, composto mês a mês.
+			--            Retorna BLANK se não houver 12 meses completos (evita valor enganoso).
+			-- Nota     : no exemplo do enunciado, NOT ISBLANK([medida]) era usado como filtro
+			--            do CALCULATE — isso não é permitido; aqui a contagem usa FILTER.
+			-- =============================================================
+			VAR _DataFim    = [_Data Referência]
+			VAR _DataInicio = EDATE ( _DataFim, -11 )
+			VAR _QtdMeses   =
+			    CALCULATE (
+			        COUNTROWS (
+			            FILTER (
+			                VALUES ( dCalendario[Data] ),
+			                NOT ISBLANK ( [_Valor Bruto] )
+			            )
+			        ),
+			        REMOVEFILTERS ( dCalendario ),
+			        dCalendario[Data] >= _DataInicio,
+			        dCalendario[Data] <= _DataFim
+			    )
+			VAR _Fator      =
+			    CALCULATE (
+			        PRODUCTX (
+			            VALUES ( dCalendario[Data] ),
+			            1 + [_Valor Bruto]
+			        ),
+			        REMOVEFILTERS ( dCalendario ),
+			        dCalendario[Data] >= _DataInicio,
+			        dCalendario[Data] <= _DataFim
+			    )
+			RETURN
+			    IF ( _QtdMeses = 12 && [_Indicador Composto], _Fator - 1 )
+		formatString: 0.00%
+		displayFolder: 02 Acumulados
+		lineageTag: 808b1a83-643f-5e67-8195-77653ff4e980
+
+	/// Acumulado (composto) dos meses selecionados nos filtros.
+	measure 'Indicador Acum. Período %' =
+			-- =============================================================
+			-- Indicador Acum. Período %
+			-- Objetivo : inflação acumulada exatamente no período filtrado (ex.: mar/23 a ago/25).
+			-- Regra    : produto (1 + taxa) - 1 sobre os meses visíveis no contexto.
+			-- =============================================================
+			VAR _Ultima = [_Data Referência]
+			VAR _Fator  =
+			    PRODUCTX (
+			        FILTER (
+			            VALUES ( dCalendario[Data] ),
+			            dCalendario[Data] <= _Ultima
+			        ),
+			        1 + [_Valor Bruto]
+			    )
+			RETURN
+			    IF ( NOT ISBLANK ( _Ultima ) && [_Indicador Composto], _Fator - 1 )
+		formatString: 0.00%
+		displayFolder: 02 Acumulados
+		lineageTag: 537d16c4-4e5d-51f1-85fc-c7fb0aaa2cda
+
+	/// Número-índice base 100 na primeira data do filtro.
+	measure 'Indicador Número-Índice' =
+			-- =============================================================
+			-- Indicador Número-Índice
+			-- Objetivo : evolução de preços em número-índice, base 100 no 1º mês selecionado.
+			-- Regra    : 100 × produto (1 + taxa) dos meses APÓS a base até o mês do ponto.
+			--            No mês-base o produto é vazio → COALESCE devolve 100.
+			-- =============================================================
+			VAR _DataFim  = [_Data Referência]
+			VAR _DataBase =
+			    CALCULATE ( MIN ( dCalendario[Data] ), ALLSELECTED ( dCalendario ) )
+			VAR _Fator    =
+			    CALCULATE (
+			        PRODUCTX (
+			            VALUES ( dCalendario[Data] ),
+			            1 + [_Valor Bruto]
+			        ),
+			        REMOVEFILTERS ( dCalendario ),
+			        dCalendario[Data] > _DataBase,
+			        dCalendario[Data] <= _DataFim
+			    )
+			RETURN
+			    IF (
+			        NOT ISBLANK ( _DataFim ) && [_Indicador Composto],
+			        100 * COALESCE ( _Fator, 1 )
+			    )
+		formatString: #,0.0
+		displayFolder: 02 Acumulados
+		lineageTag: 98c15d3a-3043-5c33-a197-a14568291fef
+
+	/// IPCA acumulado no ano (composto).
+	measure 'IPCA Acum. Ano %' =
+			-- =============================================================
+			-- IPCA Acum. Ano %
+			-- Objetivo : IPCA acumulado no ano (composto).
+			-- Regra    : aplica [Indicador Acum. Ano %] fixando a série SGS 433 (IPCA).
+			--            A lógica fica na medida genérica (uma única fonte de verdade).
+			-- =============================================================
+			CALCULATE (
+			    [Indicador Acum. Ano %],
+			    REMOVEFILTERS ( dIndicador ),
+			    dIndicador[CodigoSGS] = 433    -- IPCA
+			)
+		formatString: 0.00%
+		displayFolder: 02 Acumulados
+		lineageTag: 49662fed-b286-5f1e-b621-8eb3bf15ebf8
+
+	/// IPCA acumulado em 12 meses (composto).
+	measure 'IPCA 12M %' =
+			-- =============================================================
+			-- IPCA 12M %
+			-- Objetivo : IPCA acumulado em 12 meses (composto).
+			-- Regra    : aplica [Indicador 12M %] fixando a série SGS 433 (IPCA).
+			--            A lógica fica na medida genérica (uma única fonte de verdade).
+			-- =============================================================
+			CALCULATE (
+			    [Indicador 12M %],
+			    REMOVEFILTERS ( dIndicador ),
+			    dIndicador[CodigoSGS] = 433    -- IPCA
+			)
+		formatString: 0.00%
+		displayFolder: 02 Acumulados
+		lineageTag: 58ba78bf-4f33-5c29-a577-062555ec44e3
+
+	/// IPCA em número-índice base 100.
+	measure 'IPCA Número-Índice' =
+			-- =============================================================
+			-- IPCA Número-Índice
+			-- Objetivo : IPCA em número-índice base 100.
+			-- Regra    : aplica [Indicador Número-Índice] fixando a série SGS 433 (IPCA).
+			--            A lógica fica na medida genérica (uma única fonte de verdade).
+			-- =============================================================
+			CALCULATE (
+			    [Indicador Número-Índice],
+			    REMOVEFILTERS ( dIndicador ),
+			    dIndicador[CodigoSGS] = 433    -- IPCA
+			)
+		formatString: #,0.0
+		displayFolder: 02 Acumulados
+		lineageTag: 90087e88-2a7d-5828-aab4-8cef833cde06
+
+	/// INPC acumulado no ano (composto).
+	measure 'INPC Acum. Ano %' =
+			-- =============================================================
+			-- INPC Acum. Ano %
+			-- Objetivo : INPC acumulado no ano (composto).
+			-- Regra    : aplica [Indicador Acum. Ano %] fixando a série SGS 188 (INPC).
+			--            A lógica fica na medida genérica (uma única fonte de verdade).
+			-- =============================================================
+			CALCULATE (
+			    [Indicador Acum. Ano %],
+			    REMOVEFILTERS ( dIndicador ),
+			    dIndicador[CodigoSGS] = 188    -- INPC
+			)
+		formatString: 0.00%
+		displayFolder: 02 Acumulados
+		lineageTag: ef2c5718-42a0-5821-b2b1-623eedcb08ca
+
+	/// INPC acumulado em 12 meses (composto).
+	measure 'INPC 12M %' =
+			-- =============================================================
+			-- INPC 12M %
+			-- Objetivo : INPC acumulado em 12 meses (composto).
+			-- Regra    : aplica [Indicador 12M %] fixando a série SGS 188 (INPC).
+			--            A lógica fica na medida genérica (uma única fonte de verdade).
+			-- =============================================================
+			CALCULATE (
+			    [Indicador 12M %],
+			    REMOVEFILTERS ( dIndicador ),
+			    dIndicador[CodigoSGS] = 188    -- INPC
+			)
+		formatString: 0.00%
+		displayFolder: 02 Acumulados
+		lineageTag: 07c22c94-6bd9-5491-89ec-988e21715e8d
+
+	/// INPC em número-índice base 100.
+	measure 'INPC Número-Índice' =
+			-- =============================================================
+			-- INPC Número-Índice
+			-- Objetivo : INPC em número-índice base 100.
+			-- Regra    : aplica [Indicador Número-Índice] fixando a série SGS 188 (INPC).
+			--            A lógica fica na medida genérica (uma única fonte de verdade).
+			-- =============================================================
+			CALCULATE (
+			    [Indicador Número-Índice],
+			    REMOVEFILTERS ( dIndicador ),
+			    dIndicador[CodigoSGS] = 188    -- INPC
+			)
+		formatString: #,0.0
+		displayFolder: 02 Acumulados
+		lineageTag: bfb749df-6032-559e-85f5-c33a51c7db32
+
+	/// IGP-M acumulado no ano (composto).
+	measure 'IGP-M Acum. Ano %' =
+			-- =============================================================
+			-- IGP-M Acum. Ano %
+			-- Objetivo : IGP-M acumulado no ano (composto).
+			-- Regra    : aplica [Indicador Acum. Ano %] fixando a série SGS 189 (IGP-M).
+			--            A lógica fica na medida genérica (uma única fonte de verdade).
+			-- =============================================================
+			CALCULATE (
+			    [Indicador Acum. Ano %],
+			    REMOVEFILTERS ( dIndicador ),
+			    dIndicador[CodigoSGS] = 189    -- IGP-M
+			)
+		formatString: 0.00%
+		displayFolder: 02 Acumulados
+		lineageTag: a46b2554-dbd8-5ab1-b9ba-925b3d8109d1
+
+	/// IGP-M acumulado em 12 meses (composto).
+	measure 'IGP-M 12M %' =
+			-- =============================================================
+			-- IGP-M 12M %
+			-- Objetivo : IGP-M acumulado em 12 meses (composto).
+			-- Regra    : aplica [Indicador 12M %] fixando a série SGS 189 (IGP-M).
+			--            A lógica fica na medida genérica (uma única fonte de verdade).
+			-- =============================================================
+			CALCULATE (
+			    [Indicador 12M %],
+			    REMOVEFILTERS ( dIndicador ),
+			    dIndicador[CodigoSGS] = 189    -- IGP-M
+			)
+		formatString: 0.00%
+		displayFolder: 02 Acumulados
+		lineageTag: 8fee6321-d50a-5f7d-8173-80da16ad5662
+
+	/// IGP-M em número-índice base 100.
+	measure 'IGP-M Número-Índice' =
+			-- =============================================================
+			-- IGP-M Número-Índice
+			-- Objetivo : IGP-M em número-índice base 100.
+			-- Regra    : aplica [Indicador Número-Índice] fixando a série SGS 189 (IGP-M).
+			--            A lógica fica na medida genérica (uma única fonte de verdade).
+			-- =============================================================
+			CALCULATE (
+			    [Indicador Número-Índice],
+			    REMOVEFILTERS ( dIndicador ),
+			    dIndicador[CodigoSGS] = 189    -- IGP-M
+			)
+		formatString: #,0.0
+		displayFolder: 02 Acumulados
+		lineageTag: b61c051a-8108-51d0-b5e4-06a376df6108
+
+	/// IPCA acumulado no período filtrado.
+	measure 'IPCA Acum. Período Selecionado %' =
+			-- =============================================================
+			-- IPCA Acum. Período Selecionado %
+			-- Objetivo : IPCA acumulado no período filtrado.
+			-- Regra    : aplica [Indicador Acum. Período %] fixando a série SGS 433 (IPCA).
+			--            A lógica fica na medida genérica (uma única fonte de verdade).
+			-- =============================================================
+			CALCULATE (
+			    [Indicador Acum. Período %],
+			    REMOVEFILTERS ( dIndicador ),
+			    dIndicador[CodigoSGS] = 433    -- IPCA
+			)
+		formatString: 0.00%
+		displayFolder: 02 Acumulados
+		lineageTag: 11a8d7bd-8ba2-5abd-84dd-e9f9b529cabb
+
+	/// Preços livres acumulados em 12 meses.
+	measure 'IPCA Livres 12M %' =
+			-- =============================================================
+			-- IPCA Livres 12M %
+			-- Objetivo : preços livres acumulados em 12 meses.
+			-- Regra    : aplica [Indicador 12M %] fixando a série SGS 11428 (Livres).
+			--            A lógica fica na medida genérica (uma única fonte de verdade).
+			-- =============================================================
+			CALCULATE (
+			    [Indicador 12M %],
+			    REMOVEFILTERS ( dIndicador ),
+			    dIndicador[CodigoSGS] = 11428    -- Livres
+			)
+		formatString: 0.00%
+		displayFolder: 02 Acumulados
+		lineageTag: f95cc8dc-4626-5390-af9b-d901f236d56b
+
+	/// Preços monitorados acumulados em 12 meses.
+	measure 'IPCA Monitorados 12M %' =
+			-- =============================================================
+			-- IPCA Monitorados 12M %
+			-- Objetivo : preços monitorados acumulados em 12 meses.
+			-- Regra    : aplica [Indicador 12M %] fixando a série SGS 4449 (Monitorados).
+			--            A lógica fica na medida genérica (uma única fonte de verdade).
+			-- =============================================================
+			CALCULATE (
+			    [Indicador 12M %],
+			    REMOVEFILTERS ( dIndicador ),
+			    dIndicador[CodigoSGS] = 4449    -- Monitorados
+			)
+		formatString: 0.00%
+		displayFolder: 02 Acumulados
+		lineageTag: ead21316-3d4f-518f-a33d-9b3fccbbf8f7
+
+	/// Selic efetiva acumulada em 12 meses (composta a partir da 4390).
+	measure 'Selic 12M %' =
+			-- =============================================================
+			-- Selic 12M %
+			-- Objetivo : Selic efetiva acumulada em 12 meses (composta a partir da 4390).
+			-- Regra    : aplica [Indicador 12M %] fixando a série SGS 4390 (Selic % a.m.).
+			--            A lógica fica na medida genérica (uma única fonte de verdade).
+			-- =============================================================
+			CALCULATE (
+			    [Indicador 12M %],
+			    REMOVEFILTERS ( dIndicador ),
+			    dIndicador[CodigoSGS] = 4390    -- Selic % a.m.
+			)
+		formatString: 0.00%
+		displayFolder: 02 Acumulados
+		lineageTag: dca5a6b2-1f7f-5af7-9277-16b16263498b
+
+	/// IPCA 12M oficial publicado no SGS (conferência).
+	measure 'IPCA 12M % (SGS 13522)' =
+			-- =============================================================
+			-- IPCA 12M % (SGS 13522)
+			-- Objetivo : IPCA 12M oficial publicado no SGS (conferência).
+			-- Regra    : aplica [Indicador Mensal %] fixando a série SGS 13522 (IPCA 12M oficial).
+			--            A lógica fica na medida genérica (uma única fonte de verdade).
+			-- =============================================================
+			CALCULATE (
+			    [Indicador Mensal %],
+			    REMOVEFILTERS ( dIndicador ),
+			    dIndicador[CodigoSGS] = 13522    -- IPCA 12M oficial
+			)
+		formatString: 0.00%
+		displayFolder: 02 Acumulados
+		lineageTag: abb41593-5423-5f4a-b965-4f054197fc03
+
+	/// Meta de inflação do CMN para o ano do mês de referência.
+	measure 'Meta Ano %' =
+			-- =============================================================
+			-- Meta Ano %
+			-- Objetivo : meta de inflação do CMN para o ano do mês de referência.
+			-- Regra    : dMeta é desconectada (ver README); o ano vem do mês de referência
+			--            do IPCA, então funciona em eixos mensais, anuais e em cartões.
+			-- =============================================================
+			VAR _Data = [_Data Referência IPCA]
+			VAR _Ano  = YEAR ( _Data )
+			RETURN
+			    IF (
+			        NOT ISBLANK ( _Data ),
+			        CALCULATE ( MAX ( dMeta[Meta] ), dMeta[Ano] = _Ano )
+			    )
+		formatString: 0.00%
+		displayFolder: 03 Meta
+		lineageTag: ed90546d-4123-50c0-b4bc-827b6ed7554c
+
+	/// Piso do intervalo de tolerância da meta.
+	measure 'Limite Inferior %' =
+			-- =============================================================
+			-- Limite Inferior %
+			-- Objetivo : piso do intervalo de tolerância da meta.
+			-- Regra    : dMeta é desconectada (ver README); o ano vem do mês de referência
+			--            do IPCA, então funciona em eixos mensais, anuais e em cartões.
+			-- =============================================================
+			VAR _Data = [_Data Referência IPCA]
+			VAR _Ano  = YEAR ( _Data )
+			RETURN
+			    IF (
+			        NOT ISBLANK ( _Data ),
+			        CALCULATE ( MAX ( dMeta[LimiteInferior] ), dMeta[Ano] = _Ano )
+			    )
+		formatString: 0.00%
+		displayFolder: 03 Meta
+		lineageTag: 6dce8fd3-e912-50af-8818-4b56a621667a
+
+	/// Teto do intervalo de tolerância da meta.
+	measure 'Limite Superior %' =
+			-- =============================================================
+			-- Limite Superior %
+			-- Objetivo : teto do intervalo de tolerância da meta.
+			-- Regra    : dMeta é desconectada (ver README); o ano vem do mês de referência
+			--            do IPCA, então funciona em eixos mensais, anuais e em cartões.
+			-- =============================================================
+			VAR _Data = [_Data Referência IPCA]
+			VAR _Ano  = YEAR ( _Data )
+			RETURN
+			    IF (
+			        NOT ISBLANK ( _Data ),
+			        CALCULATE ( MAX ( dMeta[LimiteSuperior] ), dMeta[Ano] = _Ano )
+			    )
+		formatString: 0.00%
+		displayFolder: 03 Meta
+		lineageTag: 53a42f7b-57d2-5a7e-a246-80f9fdbb8038
+
+	/// IPCA 12M menos a meta, em pontos percentuais.
+	measure 'Desvio vs Meta (p.p.)' =
+			-- =============================================================
+			-- Desvio vs Meta (p.p.)
+			-- Objetivo : distância do IPCA 12M para o centro da meta.
+			-- Regra    : (IPCA 12M - Meta) × 100 → resultado já em p.p. (ex.: 1,24).
+			--            Desde 2025 a meta é contínua e apurada em 12 meses.
+			-- =============================================================
+			VAR _IPCA = [IPCA 12M %]
+			VAR _Meta = [Meta Ano %]
+			RETURN
+			    IF ( NOT ISBLANK ( _IPCA ) && NOT ISBLANK ( _Meta ), ( _IPCA - _Meta ) * 100 )
+		formatString: +0.00" p.p.";-0.00" p.p.";0.00" p.p."
+		displayFolder: 03 Meta
+		lineageTag: 33007717-56fd-5ad0-b130-d583a1282ad2
+
+	/// IPCA 12M menos o teto da meta, em p.p.
+	measure 'Desvio vs Teto (p.p.)' =
+			-- =============================================================
+			-- Desvio vs Teto (p.p.)
+			-- Objetivo : IPCA 12M menos o teto da meta, em p.p.
+			-- =============================================================
+			VAR _IPCA = [IPCA 12M %]
+			VAR _Teto = [Limite Superior %]
+			RETURN
+			    IF ( NOT ISBLANK ( _IPCA ) && NOT ISBLANK ( _Teto ), ( _IPCA - _Teto ) * 100 )
+		formatString: +0.00" p.p.";-0.00" p.p.";0.00" p.p."
+		displayFolder: 03 Meta
+		lineageTag: 9dc07796-2f48-54c4-8ece-ad33e9a1b5ee
+
+	/// Dentro / Acima do teto / Abaixo do piso, com base no IPCA 12M.
+	measure 'Status Meta' =
+			-- =============================================================
+			-- Status Meta
+			-- Objetivo : Dentro / Acima do teto / Abaixo do piso, com base no IPCA 12M.
+			-- =============================================================
+			VAR _IPCA = [IPCA 12M %]
+			VAR _Piso = [Limite Inferior %]
+			VAR _Teto = [Limite Superior %]
+			RETURN
+			    SWITCH (
+			        TRUE (),
+			        ISBLANK ( _IPCA ) || ISBLANK ( _Teto ), BLANK (),
+			        _IPCA > _Teto, "Acima do teto",
+			        _IPCA < _Piso, "Abaixo do piso",
+			        "Dentro"
+			    )
+		displayFolder: 03 Meta
+		lineageTag: b31397a9-13e8-5309-a384-d68c5e79864e
+
+	/// Sequência atual de meses com IPCA 12M acima do teto.
+	measure 'Meses Consecutivos Acima do Teto' =
+			-- =============================================================
+			-- Meses Consecutivos Acima do Teto
+			-- Objetivo : há quantos meses seguidos o IPCA 12M está acima do teto.
+			-- Regra    : acha o último mês que NÃO estava acima do teto e conta os meses
+			--            posteriores até o mês de referência. 0 = hoje está dentro/abaixo.
+			--            Custo controlado: ~180 meses, só em cartão/tooltip.
+			-- =============================================================
+			VAR _Ref    = [_Data Referência IPCA]
+			VAR _Tabela =
+			    CALCULATETABLE (
+			        ADDCOLUMNS (
+			            VALUES ( dCalendario[Data] ),
+			            "@Acima", [IPCA 12M %] > [Limite Superior %]
+			        ),
+			        REMOVEFILTERS ( dCalendario ),
+			        dCalendario[Data] <= _Ref
+			    )
+			VAR _UltimoMesDentro =
+			    MAXX ( FILTER ( _Tabela, NOT [@Acima] ), dCalendario[Data] )
+			VAR _Qtd    =
+			    COUNTROWS ( FILTER ( _Tabela, dCalendario[Data] > _UltimoMesDentro ) )
+			RETURN
+			    IF ( NOT ISBLANK ( _Ref ), _Qtd + 0 )
+		formatString: 0
+		displayFolder: 03 Meta
+		lineageTag: fc92bb9d-06fe-5080-af51-80b4d6767362
+
+	/// Quanto o IPCA acumulado do ano superou o teto (anos que estouraram).
+	measure 'Acima do Teto no Ano (p.p.)' =
+			-- =============================================================
+			-- Acima do Teto no Ano (p.p.)
+			-- Objetivo : rótulo/realce do gráfico Realizado × Meta por ano.
+			-- Regra    : IPCA acumulado no ano - teto; BLANK quando não estourou.
+			-- =============================================================
+			VAR _Realizado = [IPCA Acum. Ano %]
+			VAR _Teto      = [Limite Superior %]
+			VAR _Excesso   = ( _Realizado - _Teto ) * 100
+			RETURN
+			    IF ( _Excesso > 0, _Excesso )
+		formatString: +0.00" p.p.";-0.00" p.p.";0.00" p.p."
+		displayFolder: 03 Meta
+		lineageTag: 945f945a-e304-514b-b579-96f90bf03608
+
+	/// Variação mensal do grupo do IPCA.
+	measure 'Variação Grupo Mensal %' =
+			-- =============================================================
+			-- Variação Grupo Mensal %
+			-- Objetivo : variação mensal do grupo do IPCA.
+			-- Regra    : exige um único grupo (somar variações/pesos de grupos não faz sentido).
+			-- =============================================================
+			VAR _Data = [_Data Referência Grupos]
+			RETURN
+			    IF (
+			        HASONEVALUE ( dGrupoIPCA[CodigoGrupo] ) && NOT ISBLANK ( _Data ),
+			        CALCULATE (
+			            SUM ( fIPCAGrupos[VariacaoMensal] ),
+			            REMOVEFILTERS ( dCalendario ),
+			            dCalendario[Data] = _Data
+			        )
+			    )
+		formatString: 0.00%
+		displayFolder: 04 Composição
+		lineageTag: 5102e9cd-1b01-58c5-b21b-5e65dd982456
+
+	/// Peso do grupo no IPCA do mês.
+	measure 'Peso Grupo %' =
+			-- =============================================================
+			-- Peso Grupo %
+			-- Objetivo : peso do grupo no IPCA do mês.
+			-- Regra    : exige um único grupo (somar variações/pesos de grupos não faz sentido).
+			-- =============================================================
+			VAR _Data = [_Data Referência Grupos]
+			RETURN
+			    IF (
+			        HASONEVALUE ( dGrupoIPCA[CodigoGrupo] ) && NOT ISBLANK ( _Data ),
+			        CALCULATE (
+			            SUM ( fIPCAGrupos[Peso] ),
+			            REMOVEFILTERS ( dCalendario ),
+			            dCalendario[Data] = _Data
+			        )
+			    )
+		formatString: 0.00%
+		displayFolder: 04 Composição
+		lineageTag: 483e5391-0b10-5638-aa21-c16fd85e5810
+
+	/// Contribuição do grupo para o IPCA do mês: Σ(variação × peso), em p.p.
+	measure 'Contribuição Grupo (p.p.)' =
+			-- =============================================================
+			-- Contribuição Grupo (p.p.)
+			-- Objetivo : quantos p.p. do IPCA do mês vieram de cada grupo.
+			-- Regra    : Σ (variação mensal × peso) no mês de referência, × 100.
+			--            Somada nos 9 grupos ≈ IPCA do mês (diferença só de arredondamento).
+			--            SUMX itera ~9 linhas (mês filtrado): custo desprezível.
+			-- =============================================================
+			VAR _Data    = [_Data Referência Grupos]
+			VAR _Contrib =
+			    CALCULATE (
+			        SUMX ( fIPCAGrupos, fIPCAGrupos[VariacaoMensal] * fIPCAGrupos[Peso] ),
+			        REMOVEFILTERS ( dCalendario ),
+			        dCalendario[Data] = _Data
+			    )
+			RETURN
+			    IF ( NOT ISBLANK ( _Data ), _Contrib * 100 )
+		formatString: +0.00" p.p.";-0.00" p.p.";0.00" p.p."
+		displayFolder: 04 Composição
+		lineageTag: 0b1891d9-3ef5-5ba3-b419-3f612faa64fb
+
+	/// Soma das contribuições dos 9 grupos (≈ IPCA do mês).
+	measure 'Contribuição Total (p.p.)' =
+			-- =============================================================
+			-- Contribuição Total (p.p.)
+			-- Objetivo : soma das contribuições dos 9 grupos (≈ IPCA do mês).
+			-- =============================================================
+			CALCULATE (
+			    [Contribuição Grupo (p.p.)],
+			    REMOVEFILTERS ( dGrupoIPCA )
+			)
+		formatString: +0.00" p.p.";-0.00" p.p.";0.00" p.p."
+		displayFolder: 04 Composição
+		lineageTag: 7cd5bc09-72c8-5cdb-b6c4-ad5c185fab03
+
+	/// Fatia do IPCA do mês explicada pelo grupo.
+	measure 'Participação na Inflação %' =
+			-- =============================================================
+			-- Participação na Inflação %
+			-- Objetivo : participação do grupo na inflação do mês.
+			-- Regra    : contribuição do grupo ÷ contribuição total (pode ser negativa).
+			-- =============================================================
+			DIVIDE (
+			    [Contribuição Grupo (p.p.)],
+			    [Contribuição Total (p.p.)]
+			)
+		formatString: 0.0%
+		displayFolder: 04 Composição
+		lineageTag: 10266419-93ce-5a9a-85d8-c6a3caac4b08
+
+	/// Posição do grupo (1 = maior pressão de alta).
+	measure 'Ranking Grupo por Contribuição' =
+			-- =============================================================
+			-- Ranking Grupo por Contribuição
+			-- Objetivo : ranking dos grupos pela contribuição no mês.
+			-- Regra    : ALL(dGrupoIPCA) (tabela inteira) evita o problema de 'ordenar por
+			--            coluna' (Grupo ordenado por Ordem), que quebraria o RANKX.
+			-- =============================================================
+			IF (
+			    HASONEVALUE ( dGrupoIPCA[CodigoGrupo] ),
+			    RANKX (
+			        ALL ( dGrupoIPCA ),
+			        [Contribuição Grupo (p.p.)],
+			        ,
+			        DESC,
+			        DENSE
+			    )
+			)
+		formatString: 0
+		displayFolder: 04 Composição
+		lineageTag: 4e142df0-87e1-5619-8d60-7d796c2bf9e4
+
+	/// Nome do grupo com a maior contribuição no mês.
+	measure 'Grupo de Maior Pressão' =
+			-- =============================================================
+			-- Grupo de Maior Pressão
+			-- Objetivo : nome do grupo com a maior contribuição no mês.
+			-- =============================================================
+			VAR _Top =
+			    TOPN ( 1, ALL ( dGrupoIPCA ), [Contribuição Grupo (p.p.)], DESC )
+			RETURN
+			    MAXX ( _Top, dGrupoIPCA[Grupo] )
+		displayFolder: 04 Composição
+		lineageTag: 65a090ca-343a-59c6-aefc-f2cf25953c09
+
+	/// Contribuição (p.p.) do grupo líder.
+	measure 'Contribuição do Grupo de Maior Pressão (p.p.)' =
+			-- =============================================================
+			-- Contribuição do Grupo de Maior Pressão (p.p.)
+			-- Objetivo : contribuição (p.p.) do grupo líder.
+			-- =============================================================
+			VAR _Top =
+			    TOPN ( 1, ALL ( dGrupoIPCA ), [Contribuição Grupo (p.p.)], DESC )
+			RETURN
+			    MAXX ( _Top, [Contribuição Grupo (p.p.)] )
+		formatString: +0.00" p.p.";-0.00" p.p.";0.00" p.p."
+		displayFolder: 04 Composição
+		lineageTag: edf6c390-0ac5-5aea-83fd-a830b8baf882
+
+	/// IPCA mensal menos o IPCA do mês anterior, em p.p.
+	measure 'Variação vs Mês Anterior (p.p.)' =
+			-- =============================================================
+			-- Variação vs Mês Anterior (p.p.)
+			-- Objetivo : IPCA mensal menos o IPCA do mês anterior, em p.p.
+			-- =============================================================
+			VAR _Data     = [_Data Referência IPCA]
+			VAR _Atual    = [IPCA Mensal %]
+			VAR _Anterior =
+			    CALCULATE (
+			        [IPCA Mensal %],
+			        REMOVEFILTERS ( dCalendario ),
+			        dCalendario[Data] = EDATE ( _Data, -1 )
+			    )
+			RETURN
+			    IF ( NOT ISBLANK ( _Atual ) && NOT ISBLANK ( _Anterior ), ( _Atual - _Anterior ) * 100 )
+		formatString: +0.00" p.p.";-0.00" p.p.";0.00" p.p."
+		displayFolder: 05 Comparativos
+		lineageTag: 265d54f4-c5fb-5b49-9b81-fa0e469d7dd6
+
+	/// IPCA do mês anterior ao de referência.
+	measure 'IPCA Mensal Mês Anterior %' =
+			-- =============================================================
+			-- IPCA Mensal Mês Anterior %
+			-- Objetivo : IPCA do mês anterior ao de referência.
+			-- =============================================================
+			VAR _Data = [_Data Referência IPCA]
+			RETURN
+			    CALCULATE (
+			        [IPCA Mensal %],
+			        REMOVEFILTERS ( dCalendario ),
+			        dCalendario[Data] = EDATE ( _Data, -1 )
+			    )
+		formatString: 0.00%
+		displayFolder: 05 Comparativos
+		lineageTag: d73a70cf-393e-581d-8f9c-0af5bb1a174b
+
+	/// IPCA 12M no mês anterior ao de referência.
+	measure 'IPCA 12M Mês Anterior %' =
+			-- =============================================================
+			-- IPCA 12M Mês Anterior %
+			-- Objetivo : IPCA 12M no mês anterior ao de referência.
+			-- =============================================================
+			VAR _Data = [_Data Referência IPCA]
+			RETURN
+			    CALCULATE (
+			        [IPCA 12M %],
+			        REMOVEFILTERS ( dCalendario ),
+			        dCalendario[Data] = EDATE ( _Data, -1 )
+			    )
+		formatString: 0.00%
+		displayFolder: 05 Comparativos
+		lineageTag: c93064ff-26c9-5502-b764-f99e79a30a84
+
+	/// Variação do IPCA 12M contra o mês anterior, em p.p.
+	measure 'Δ 12M vs Mês Anterior (p.p.)' =
+			-- =============================================================
+			-- Δ 12M vs Mês Anterior (p.p.)
+			-- Objetivo : variação do IPCA 12M contra o mês anterior, em p.p.
+			-- =============================================================
+			VAR _Atual    = [IPCA 12M %]
+			VAR _Anterior = [IPCA 12M Mês Anterior %]
+			RETURN
+			    IF ( NOT ISBLANK ( _Atual ) && NOT ISBLANK ( _Anterior ), ( _Atual - _Anterior ) * 100 )
+		formatString: +0.00" p.p.";-0.00" p.p.";0.00" p.p."
+		displayFolder: 05 Comparativos
+		lineageTag: e9907bbe-91e1-57af-bad9-172211d051a1
+
+	/// IPCA 12M no mesmo mês do ano anterior.
+	measure 'IPCA 12M Mesmo Mês Ano Anterior' =
+			-- =============================================================
+			-- IPCA 12M Mesmo Mês Ano Anterior
+			-- Objetivo : IPCA 12M no mesmo mês do ano anterior.
+			-- =============================================================
+			VAR _Data = [_Data Referência IPCA]
+			RETURN
+			    CALCULATE (
+			        [IPCA 12M %],
+			        REMOVEFILTERS ( dCalendario ),
+			        dCalendario[Data] = EDATE ( _Data, -12 )
+			    )
+		formatString: 0.00%
+		displayFolder: 05 Comparativos
+		lineageTag: abfbc743-eef2-5372-a357-b62a9845a4f7
+
+	/// IPCA 12M atual menos o de 12 meses antes, em p.p.
+	measure 'Δ 12M vs Ano Anterior (p.p.)' =
+			-- =============================================================
+			-- Δ 12M vs Ano Anterior (p.p.)
+			-- Objetivo : IPCA 12M atual menos o de 12 meses antes, em p.p.
+			-- =============================================================
+			VAR _Atual    = [IPCA 12M %]
+			VAR _Anterior = [IPCA 12M Mesmo Mês Ano Anterior]
+			RETURN
+			    IF ( NOT ISBLANK ( _Atual ) && NOT ISBLANK ( _Anterior ), ( _Atual - _Anterior ) * 100 )
+		formatString: +0.00" p.p.";-0.00" p.p.";0.00" p.p."
+		displayFolder: 05 Comparativos
+		lineageTag: 68cd6f99-d4e0-5b86-a4d1-8874c24f6fb0
+
+	/// Acumulado no ano até o mesmo mês do ano anterior.
+	measure 'IPCA Acum. Ano Mesmo Período Ano Anterior %' =
+			-- =============================================================
+			-- IPCA Acum. Ano Mesmo Período Ano Anterior %
+			-- Objetivo : acumulado no ano até o mesmo mês do ano anterior.
+			-- =============================================================
+			VAR _Data = [_Data Referência IPCA]
+			RETURN
+			    CALCULATE (
+			        [IPCA Acum. Ano %],
+			        REMOVEFILTERS ( dCalendario ),
+			        dCalendario[Data] = EDATE ( _Data, -12 )
+			    )
+		formatString: 0.00%
+		displayFolder: 05 Comparativos
+		lineageTag: e57543d6-047f-58a6-958e-60111e528dc9
+
+	/// Acumulado do ano menos o mesmo período do ano anterior.
+	measure 'Δ Acum. Ano vs Ano Anterior (p.p.)' =
+			-- =============================================================
+			-- Δ Acum. Ano vs Ano Anterior (p.p.)
+			-- Objetivo : acumulado do ano menos o mesmo período do ano anterior.
+			-- =============================================================
+			VAR _Atual    = [IPCA Acum. Ano %]
+			VAR _Anterior = [IPCA Acum. Ano Mesmo Período Ano Anterior %]
+			RETURN
+			    IF ( NOT ISBLANK ( _Atual ) && NOT ISBLANK ( _Anterior ), ( _Atual - _Anterior ) * 100 )
+		formatString: +0.00" p.p.";-0.00" p.p.";0.00" p.p."
+		displayFolder: 05 Comparativos
+		lineageTag: 71e18821-92e5-595b-8270-5677e1aa0fc2
+
+	/// IPCA 12M menos IGP-M 12M, alinhados no mês do IPCA.
+	measure 'Spread IPCA − IGP-M (p.p.)' =
+			-- =============================================================
+			-- Spread IPCA − IGP-M (p.p.)
+			-- Objetivo : diferença entre inflação ao consumidor (IPCA) e IGP-M (atacado/aluguéis).
+			-- Regra    : ambos em 12M, com o IGP-M lido NO MÊS DO IPCA (o IGP-M sai antes
+			--            e teria um mês a mais; sem alinhar, o spread misturaria meses).
+			-- =============================================================
+			VAR _Data = [_Data Referência IPCA]
+			VAR _IPCA = [IPCA 12M %]
+			VAR _IGPM =
+			    CALCULATE (
+			        [IGP-M 12M %],
+			        REMOVEFILTERS ( dCalendario ),
+			        dCalendario[Data] = _Data
+			    )
+			RETURN
+			    IF ( NOT ISBLANK ( _IPCA ) && NOT ISBLANK ( _IGPM ), ( _IPCA - _IGPM ) * 100 )
+		formatString: +0.00" p.p.";-0.00" p.p.";0.00" p.p."
+		displayFolder: 05 Comparativos
+		lineageTag: 07949d84-25a1-57ff-8f79-95e63c7669c4
+
+	/// IPCA 12M menos INPC 12M, em p.p.
+	measure 'Spread IPCA − INPC (p.p.)' =
+			-- =============================================================
+			-- Spread IPCA − INPC (p.p.)
+			-- Objetivo : IPCA 12M menos INPC 12M, em p.p.
+			-- =============================================================
+			VAR _Data = [_Data Referência IPCA]
+			VAR _IPCA = [IPCA 12M %]
+			VAR _INPC =
+			    CALCULATE (
+			        [INPC 12M %],
+			        REMOVEFILTERS ( dCalendario ),
+			        dCalendario[Data] = _Data
+			    )
+			RETURN
+			    IF ( NOT ISBLANK ( _IPCA ) && NOT ISBLANK ( _INPC ), ( _IPCA - _INPC ) * 100 )
+		formatString: +0.00" p.p.";-0.00" p.p.";0.00" p.p."
+		displayFolder: 05 Comparativos
+		lineageTag: f9b5d556-d956-58f6-aaf2-978cc93ae5ee
+
+	/// % dos 9 grupos do IPCA com variação positiva no mês.
+	measure 'Difusão de Alta %' =
+			-- =============================================================
+			-- Difusão de Alta %
+			-- Objetivo : quão espalhada está a alta de preços entre os grupos.
+			-- Regra    : grupos com variação > 0 ÷ grupos com dado. Atenção: é a difusão por
+			--            GRUPO (9 itens), não o índice oficial de difusão por subitens do BCB.
+			-- =============================================================
+			VAR _Tabela =
+			    ADDCOLUMNS (
+			        ALL ( dGrupoIPCA ),
+			        "@Var", [Variação Grupo Mensal %]
+			    )
+			VAR _ComDado = COUNTROWS ( FILTER ( _Tabela, NOT ISBLANK ( [@Var] ) ) )
+			VAR _EmAlta  = COUNTROWS ( FILTER ( _Tabela, [@Var] > 0 ) )
+			RETURN
+			    DIVIDE ( _EmAlta, _ComDado )
+		formatString: 0.0%
+		displayFolder: 05 Comparativos
+		lineageTag: 68fb309f-1cda-5303-9f62-79e793876da0
+
+	/// Mediana Focus do IPCA para o ano da coleta (última coleta do mês).
+	measure 'Focus Mediana Ano Corrente' =
+			-- =============================================================
+			-- Focus Mediana Ano Corrente
+			-- Objetivo : expectativa de mercado para o IPCA do próprio ano da coleta.
+			-- Regra    : fExpectativas guarda 1 linha por mês de coleta × ano de referência
+			--            (a última coleta de cada mês), então MAX apenas lê o valor.
+			-- =============================================================
+			VAR _Coleta = [_Data Referência Focus]
+			RETURN
+			    IF (
+			        NOT ISBLANK ( _Coleta ),
+			        CALCULATE (
+			            MAX ( fExpectativas[Mediana] ),
+			            REMOVEFILTERS ( dCalendario ),
+			            dCalendario[Data] = _Coleta,
+			            fExpectativas[AnoReferencia] = YEAR ( _Coleta )
+			        )
+			    )
+		formatString: 0.00%
+		displayFolder: 06 Expectativas e Juros
+		lineageTag: 782edfe3-adc5-571c-ba1f-2470bdd872fe
+
+	/// Mediana Focus do IPCA para o ano seguinte ao da coleta.
+	measure 'Focus Mediana Próximo Ano' =
+			-- =============================================================
+			-- Focus Mediana Próximo Ano
+			-- Objetivo : mediana Focus do IPCA para o ano seguinte ao da coleta.
+			-- =============================================================
+			VAR _Coleta = [_Data Referência Focus]
+			RETURN
+			    IF (
+			        NOT ISBLANK ( _Coleta ),
+			        CALCULATE (
+			            MAX ( fExpectativas[Mediana] ),
+			            REMOVEFILTERS ( dCalendario ),
+			            dCalendario[Data] = _Coleta,
+			            fExpectativas[AnoReferencia] = YEAR ( _Coleta ) + 1
+			        )
+			    )
+		formatString: 0.00%
+		displayFolder: 06 Expectativas e Juros
+		lineageTag: 0da1a309-d23e-5548-9b90-91948947507b
+
+	/// O que o mercado esperava em janeiro para o IPCA do ano.
+	measure 'Focus Mediana Início do Ano' =
+			-- =============================================================
+			-- Focus Mediana Início do Ano
+			-- Objetivo : o que o mercado esperava em janeiro para o IPCA do ano.
+			-- =============================================================
+			VAR _Ano = YEAR ( [_Data Referência IPCA] )
+			RETURN
+			    CALCULATE (
+			        MAX ( fExpectativas[Mediana] ),
+			        REMOVEFILTERS ( dCalendario ),
+			        dCalendario[Data] = DATE ( _Ano, 1, 1 ),
+			        fExpectativas[AnoReferencia] = _Ano
+			    )
+		formatString: 0.00%
+		displayFolder: 06 Expectativas e Juros
+		lineageTag: 9ecbbe4f-8c95-52c9-8bec-3c201937c6b2
+
+	/// IPCA realizado no ano menos a expectativa Focus de janeiro (anos fechados).
+	measure 'Focus vs Realizado (p.p.)' =
+			-- =============================================================
+			-- Focus vs Realizado (p.p.)
+			-- Objetivo : erro de previsão do mercado (positivo = inflação surpreendeu para cima).
+			-- Regra    : IPCA de jan–dez menos a mediana Focus coletada em janeiro do ano.
+			--            Só para anos fechados (dezembro publicado), para não comparar YTD com ano cheio.
+			-- =============================================================
+			VAR _Data      = [_Data Referência IPCA]
+			VAR _AnoFechado = MONTH ( _Data ) = 12
+			VAR _Realizado = [IPCA Acum. Ano %]
+			VAR _Esperado  = [Focus Mediana Início do Ano]
+			RETURN
+			    IF (
+			        _AnoFechado && NOT ISBLANK ( _Esperado ),
+			        ( _Realizado - _Esperado ) * 100
+			    )
+		formatString: +0.00" p.p.";-0.00" p.p.";0.00" p.p."
+		displayFolder: 06 Expectativas e Juros
+		lineageTag: fbb74d12-f8cc-52d2-a9a4-b7e7d35456c0
+
+	/// (1 + Selic 12M) / (1 + IPCA 12M) - 1, no mês do IPCA.
+	measure 'Juro Real Ex-Post %' =
+			-- =============================================================
+			-- Juro Real Ex-Post %
+			-- Objetivo : juro real efetivamente obtido nos últimos 12 meses.
+			-- Regra    : equação de Fisher (1 + Selic 12M) / (1 + IPCA 12M) - 1.
+			--            Selic 12M = composição da Selic mensal (SGS 4390), alinhada no mês do IPCA.
+			-- =============================================================
+			VAR _Data  = [_Data Referência IPCA]
+			VAR _IPCA  = [IPCA 12M %]
+			VAR _Selic =
+			    CALCULATE (
+			        [Selic 12M %],
+			        REMOVEFILTERS ( dCalendario ),
+			        dCalendario[Data] = _Data
+			    )
+			RETURN
+			    IF (
+			        NOT ISBLANK ( _IPCA ) && NOT ISBLANK ( _Selic ),
+			        DIVIDE ( 1 + _Selic, 1 + _IPCA ) - 1
+			    )
+		formatString: 0.00%
+		displayFolder: 06 Expectativas e Juros
+		lineageTag: 435f1ede-a262-5cf1-9794-d3c2daefa21a
+
+	/// 'Dados até: mmm/aaaa' para o cabeçalho de todas as páginas.
+	measure 'Texto Dados Até' =
+			-- =============================================================
+			-- Texto Dados Até
+			-- Objetivo : 'Dados até: mmm/aaaa' para o cabeçalho de todas as páginas.
+			-- =============================================================
+			VAR _Data = [Último Mês Disponível]
+			RETURN
+			    "Dados até: " & FORMAT ( _Data, "mmm/yyyy" )
+		displayFolder: 07 Textos e HTML
+		lineageTag: 62ff6097-7bab-5916-8318-be7f3a6ae24a
+
+	/// Mês de referência por extenso (ex.: setembro de 2026).
+	measure 'Texto Mês de Referência' =
+			-- =============================================================
+			-- Texto Mês de Referência
+			-- Objetivo : mês de referência por extenso (ex.: setembro de 2026).
+			-- =============================================================
+			VAR _Data = [_Data Referência IPCA]
+			RETURN
+			    IF ( NOT ISBLANK ( _Data ), FORMAT ( _Data, "mmmm" ) & " de " & YEAR ( _Data ) )
+		displayFolder: 07 Textos e HTML
+		lineageTag: 11211cfd-f2d7-500c-877d-a292ee002224
+
+	/// Título dinâmico da página Visão Geral.
+	measure 'Título Visão Geral' =
+			-- =============================================================
+			-- Título Visão Geral
+			-- Objetivo : título dinâmico da página Visão Geral.
+			-- =============================================================
+			VAR _Mes = [Texto Mês de Referência]
+			RETURN
+			    "Inflação no Brasil" & IF ( NOT ISBLANK ( _Mes ), " · " & _Mes )
+		displayFolder: 07 Textos e HTML
+		lineageTag: b66874a9-57f6-50bb-9fbc-7a1f8b7eeeec
+
+	/// Título dinâmico da página Composição.
+	measure 'Título Composição' =
+			-- =============================================================
+			-- Título Composição
+			-- Objetivo : título dinâmico da página Composição.
+			-- =============================================================
+			VAR _Mes = [Texto Mês de Referência]
+			RETURN
+			    "Composição do IPCA" & IF ( NOT ISBLANK ( _Mes ), " · " & _Mes )
+		displayFolder: 07 Textos e HTML
+		lineageTag: f876c49d-dedb-5933-83c0-c5356410e23f
+
+	/// Título dinâmico da página Comparativos.
+	measure 'Título Comparativos' =
+			-- =============================================================
+			-- Título Comparativos
+			-- Objetivo : título dinâmico da página Comparativos.
+			-- =============================================================
+			VAR _Mes = [Texto Mês de Referência]
+			RETURN
+			    "IPCA, INPC e IGP-M" & IF ( NOT ISBLANK ( _Mes ), " · " & _Mes )
+		displayFolder: 07 Textos e HTML
+		lineageTag: 59a77902-a360-5f85-9d8d-5e86ce12ee98
+
+	/// Título dinâmico da página Expectativas.
+	measure 'Título Expectativas' =
+			-- =============================================================
+			-- Título Expectativas
+			-- Objetivo : título dinâmico da página Expectativas.
+			-- =============================================================
+			VAR _Mes = [Texto Mês de Referência]
+			RETURN
+			    "Expectativas e juros" & IF ( NOT ISBLANK ( _Mes ), " · " & _Mes )
+		displayFolder: 07 Textos e HTML
+		lineageTag: ab91744f-6796-5e82-a53d-05ab874d5c1c
+
+	/// Título dinâmico da página Metodologia.
+	measure 'Título Metodologia' =
+			-- =============================================================
+			-- Título Metodologia
+			-- Objetivo : título dinâmico da página Metodologia.
+			-- =============================================================
+			VAR _Mes = [Texto Mês de Referência]
+			RETURN
+			    "Metodologia e fontes" & IF ( NOT ISBLANK ( _Mes ), " · " & _Mes )
+		displayFolder: 07 Textos e HTML
+		lineageTag: 938a6ffe-97e8-561c-ade6-7da50098eaa8
+
+	/// Frase narrativa da posição do IPCA 12M em relação à meta.
+	measure 'Subtítulo Meta' =
+			-- =============================================================
+			-- Subtítulo Meta
+			-- Objetivo : subtítulo narrativo (ex.: 'A inflação acumulada em 12 meses está
+			--            1,24 p.p. acima do teto da meta.').
+			-- Regra    : FORMAT respeita a cultura pt-BR do modelo (vírgula decimal).
+			-- =============================================================
+			VAR _IPCA = [IPCA 12M %]
+			VAR _Piso = [Limite Inferior %]
+			VAR _Teto = [Limite Superior %]
+			VAR _Txt  = "A inflação acumulada em 12 meses está "
+			RETURN
+			    SWITCH (
+			        TRUE (),
+			        ISBLANK ( _IPCA ), "Sem 12 meses completos no período selecionado.",
+			        _IPCA > _Teto,
+			            _Txt & FORMAT ( ( _IPCA - _Teto ) * 100, "0.00" ) & " p.p. acima do teto da meta.",
+			        _IPCA < _Piso,
+			            _Txt & FORMAT ( ( _Piso - _IPCA ) * 100, "0.00" ) & " p.p. abaixo do piso da meta.",
+			        _Txt & "dentro do intervalo de tolerância, "
+			            & FORMAT ( ( _Teto - _IPCA ) * 100, "0.00" ) & " p.p. abaixo do teto."
+			    )
+		displayFolder: 07 Textos e HTML
+		lineageTag: b901626a-9179-5621-ab73-091f6646d5dc
+
+	/// Frase sobre o grupo de maior pressão no mês.
+	measure 'Subtítulo Composição' =
+			-- =============================================================
+			-- Subtítulo Composição
+			-- Objetivo : frase sobre o grupo de maior pressão no mês.
+			-- =============================================================
+			VAR _Grupo   = [Grupo de Maior Pressão]
+			VAR _Contrib = [Contribuição do Grupo de Maior Pressão (p.p.)]
+			VAR _Difusao = [Difusão de Alta %]
+			RETURN
+			    IF (
+			        NOT ISBLANK ( _Grupo ),
+			        _Grupo & " foi o grupo de maior pressão, com "
+			            & FORMAT ( _Contrib, "0.00" ) & " p.p.; "
+			            & FORMAT ( _Difusao, "0%" ) & " dos grupos tiveram alta."
+			    )
+		displayFolder: 07 Textos e HTML
+		lineageTag: 98e109c4-132a-53e4-82d8-0aaaa81976ab
+
+	/// Frase sobre o juro real ex-post.
+	measure 'Subtítulo Juro Real' =
+			-- =============================================================
+			-- Subtítulo Juro Real
+			-- Objetivo : frase sobre o juro real ex-post.
+			-- =============================================================
+			VAR _Juro = [Juro Real Ex-Post %]
+			RETURN
+			    IF (
+			        NOT ISBLANK ( _Juro ),
+			        "O juro real ex-post em 12 meses é de " & FORMAT ( _Juro, "0.00%" )
+			            & IF ( _Juro >= 0.05, " — política monetária contracionista.", "." )
+			    )
+		displayFolder: 07 Textos e HTML
+		lineageTag: 192af759-a348-5768-96a5-c63ecd824ca0
+
+	/// Data e hora da última execução do Python (_ControleCarga).
+	measure 'Última Carga' =
+			-- =============================================================
+			-- Última Carga
+			-- Objetivo : data e hora da última execução do Python (_ControleCarga).
+			-- =============================================================
+			VAR _Carga = MAX ( _ControleCarga[DataHoraCarga] )
+			RETURN
+			    "Última carga: " & FORMAT ( _Carga, "dd/mm/yyyy hh:nn" )
+		displayFolder: 07 Textos e HTML
+		lineageTag: c967b9c2-1fc5-563f-a07c-ea211437f8a4
+
+	/// Cartão KPI do IPCA mensal.
+	measure 'HTML Card IPCA Mês' =
+			-- =============================================================
+			-- HTML Card IPCA Mês
+			-- Objetivo : cartão KPI do IPCA mensal.
+			-- Badge    : variação em p.p. contra o mês anterior.
+			--            Semântica de inflação: ALTA = vermelho, QUEDA = verde.
+			-- Decimais : texto formatado é partido em inteiro/decimal (preserva sinal
+			--            negativo — TRUNC do exemplo original perdia o '-' em -0,30%).
+			-- Visual   : HTML Content (AppSource) → campo 'Values' = esta medida.
+			-- =============================================================
+			VAR _Valor    = [IPCA Mensal %]
+			VAR _Delta    = [Variação vs Mês Anterior (p.p.)]
+			VAR _Texto    = FORMAT ( _Valor * 100, "0.00" )                 -- ex.: "4,52" / "-0,30"
+			VAR _Inteiro  = LEFT ( _Texto, LEN ( _Texto ) - 3 )                -- "4"   (preserva o sinal)
+			VAR _Decimal  = RIGHT ( _Texto, 3 )                                -- ",52"
+			VAR _CorDec   = "#C9C9D3"                                          -- decimais "apagados"
+			VAR _CorTxt   = SWITCH ( TRUE (), _Delta > 0, "#E5484D", _Delta < 0, "#22A06B", "#8A8AA0" )
+			VAR _CorFundo = SWITCH ( TRUE (), _Delta > 0, "#FDECEC", _Delta < 0, "#E6F6EE", "#F0F0F5" )
+			VAR _Seta     = SWITCH ( TRUE (), _Delta > 0, "↑", _Delta < 0, "↓", "→" )
+			VAR _Badge    =
+			    IF (
+			        NOT ISBLANK ( _Delta ),
+			        "<span style='background:" & _CorFundo & ";color:" & _CorTxt
+			            & ";padding:3px 8px;border-radius:8px;font-size:12px;font-weight:600;white-space:nowrap;'>"
+			            & _Seta & " " & FORMAT ( ABS ( _Delta ), "0.00" ) & " p.p.</span>"
+			    )
+			VAR _Narrativa = "Mês anterior: <b style='color:#1A1A2E;'>" & FORMAT ( [IPCA Mensal Mês Anterior %], "0.00%" ) & "</b>"
+			RETURN
+			    IF (
+			        ISBLANK ( _Valor ),
+			        "<div style='font-family:Segoe UI;color:#8A8AA0;padding:16px;'>Sem dados no período</div>",
+			        "<div style='font-family:Segoe UI,sans-serif;padding:16px 18px;background:#FFFFFF;"
+			            & "border-radius:16px;display:flex;justify-content:space-between;gap:12px;height:100%;box-sizing:border-box;'>"
+			        -- coluna esquerda: título, valor, badge e narrativa
+			        & "<div style='min-width:0;'>"
+			        & "<div style='font-size:15px;color:#1A1A2E;font-weight:600;'>IPCA do mês</div>"
+			        & "<div style='font-size:34px;font-weight:700;color:#1A1A2E;margin:6px 0 8px 0;letter-spacing:-0.5px;'>"
+			            & _Inteiro & "<span style='color:" & _CorDec & ";'>" & _Decimal & "%</span></div>"
+			        & _Badge
+			        & "<div style='font-size:12px;color:#8A8AA0;margin-top:10px;line-height:1.35;'>" & _Narrativa & "</div>"
+			        & "</div>"
+			        -- coluna direita: mini-indicadores
+			        & "<div style='display:flex;flex-direction:column;justify-content:flex-end;min-width:118px;'>"
+			        & "<div style='display:flex;align-items:center;gap:8px;margin-top:10px;'>"
+			            & "<div style='width:30px;height:30px;border-radius:50%;background:#E9E4FF;color:#7B61FF;"
+			            & "display:flex;align-items:center;justify-content:center;font-size:14px;'>⇅</div>"
+			            & "<div style='font-size:12px;line-height:1.25;color:#1A1A2E;font-weight:600;'>"
+			            & FORMAT ( [IPCA Livres %], "0.00%" ) & "<br><span style='color:#8A8AA0;font-weight:400;'>Livres</span></div></div>"
+			        & "<div style='display:flex;align-items:center;gap:8px;margin-top:10px;'>"
+			            & "<div style='width:30px;height:30px;border-radius:50%;background:#E9E4FF;color:#7B61FF;"
+			            & "display:flex;align-items:center;justify-content:center;font-size:14px;'>⚙</div>"
+			            & "<div style='font-size:12px;line-height:1.25;color:#1A1A2E;font-weight:600;'>"
+			            & FORMAT ( [IPCA Monitorados %], "0.00%" ) & "<br><span style='color:#8A8AA0;font-weight:400;'>Monitorados</span></div></div>"
+			        & "</div></div>"
+			    )
+		displayFolder: 07 Textos e HTML
+		lineageTag: 6fc17b1c-e8bb-5902-9474-8cdfb1b9999d
+
+	/// Cartão KPI do IPCA acumulado no ano.
+	measure 'HTML Card IPCA Acum. Ano' =
+			-- =============================================================
+			-- HTML Card IPCA Acum. Ano
+			-- Objetivo : cartão KPI do IPCA acumulado no ano.
+			-- Badge    : acumulado do ano vs o mesmo período do ano anterior.
+			--            Semântica de inflação: ALTA = vermelho, QUEDA = verde.
+			-- Decimais : texto formatado é partido em inteiro/decimal (preserva sinal
+			--            negativo — TRUNC do exemplo original perdia o '-' em -0,30%).
+			-- Visual   : HTML Content (AppSource) → campo 'Values' = esta medida.
+			-- =============================================================
+			VAR _Valor    = [IPCA Acum. Ano %]
+			VAR _Delta    = [Δ Acum. Ano vs Ano Anterior (p.p.)]
+			VAR _Texto    = FORMAT ( _Valor * 100, "0.00" )                 -- ex.: "4,52" / "-0,30"
+			VAR _Inteiro  = LEFT ( _Texto, LEN ( _Texto ) - 3 )                -- "4"   (preserva o sinal)
+			VAR _Decimal  = RIGHT ( _Texto, 3 )                                -- ",52"
+			VAR _CorDec   = "#C9C9D3"                                          -- decimais "apagados"
+			VAR _CorTxt   = SWITCH ( TRUE (), _Delta > 0, "#E5484D", _Delta < 0, "#22A06B", "#8A8AA0" )
+			VAR _CorFundo = SWITCH ( TRUE (), _Delta > 0, "#FDECEC", _Delta < 0, "#E6F6EE", "#F0F0F5" )
+			VAR _Seta     = SWITCH ( TRUE (), _Delta > 0, "↑", _Delta < 0, "↓", "→" )
+			VAR _Badge    =
+			    IF (
+			        NOT ISBLANK ( _Delta ),
+			        "<span style='background:" & _CorFundo & ";color:" & _CorTxt
+			            & ";padding:3px 8px;border-radius:8px;font-size:12px;font-weight:600;white-space:nowrap;'>"
+			            & _Seta & " " & FORMAT ( ABS ( _Delta ), "0.00" ) & " p.p.</span>"
+			    )
+			VAR _Narrativa = "Mesmo período de " & ( YEAR ( [_Data Referência IPCA] ) - 1 ) & ": <b style='color:#1A1A2E;'>" & FORMAT ( [IPCA Acum. Ano Mesmo Período Ano Anterior %], "0.00%" ) & "</b>"
+			RETURN
+			    IF (
+			        ISBLANK ( _Valor ),
+			        "<div style='font-family:Segoe UI;color:#8A8AA0;padding:16px;'>Sem dados no período</div>",
+			        "<div style='font-family:Segoe UI,sans-serif;padding:16px 18px;background:#FFFFFF;"
+			            & "border-radius:16px;display:flex;justify-content:space-between;gap:12px;height:100%;box-sizing:border-box;'>"
+			        -- coluna esquerda: título, valor, badge e narrativa
+			        & "<div style='min-width:0;'>"
+			        & "<div style='font-size:15px;color:#1A1A2E;font-weight:600;'>Acumulado no ano</div>"
+			        & "<div style='font-size:34px;font-weight:700;color:#1A1A2E;margin:6px 0 8px 0;letter-spacing:-0.5px;'>"
+			            & _Inteiro & "<span style='color:" & _CorDec & ";'>" & _Decimal & "%</span></div>"
+			        & _Badge
+			        & "<div style='font-size:12px;color:#8A8AA0;margin-top:10px;line-height:1.35;'>" & _Narrativa & "</div>"
+			        & "</div>"
+			        -- coluna direita: mini-indicadores
+			        & "<div style='display:flex;flex-direction:column;justify-content:flex-end;min-width:118px;'>"
+			        & "<div style='display:flex;align-items:center;gap:8px;margin-top:10px;'>"
+			            & "<div style='width:30px;height:30px;border-radius:50%;background:#E9E4FF;color:#7B61FF;"
+			            & "display:flex;align-items:center;justify-content:center;font-size:14px;'>◎</div>"
+			            & "<div style='font-size:12px;line-height:1.25;color:#1A1A2E;font-weight:600;'>"
+			            & FORMAT ( [Focus Mediana Ano Corrente], "0.00%" ) & "<br><span style='color:#8A8AA0;font-weight:400;'>Focus p/ o ano</span></div></div>"
+			        & "<div style='display:flex;align-items:center;gap:8px;margin-top:10px;'>"
+			            & "<div style='width:30px;height:30px;border-radius:50%;background:#E9E4FF;color:#7B61FF;"
+			            & "display:flex;align-items:center;justify-content:center;font-size:14px;'>⚑</div>"
+			            & "<div style='font-size:12px;line-height:1.25;color:#1A1A2E;font-weight:600;'>"
+			            & FORMAT ( [Meta Ano %], "0.0%" ) & "<br><span style='color:#8A8AA0;font-weight:400;'>Meta do ano</span></div></div>"
+			        & "</div></div>"
+			    )
+		displayFolder: 07 Textos e HTML
+		lineageTag: 4f032611-6403-5d43-85f2-eff4b1a5e297
+
+	/// Cartão KPI do IPCA acumulado em 12 meses.
+	measure 'HTML Card IPCA 12M' =
+			-- =============================================================
+			-- HTML Card IPCA 12M
+			-- Objetivo : cartão KPI do IPCA acumulado em 12 meses.
+			-- Badge    : vermelho se o 12M subiu vs mês anterior, verde se caiu.
+			--            Semântica de inflação: ALTA = vermelho, QUEDA = verde.
+			-- Decimais : texto formatado é partido em inteiro/decimal (preserva sinal
+			--            negativo — TRUNC do exemplo original perdia o '-' em -0,30%).
+			-- Visual   : HTML Content (AppSource) → campo 'Values' = esta medida.
+			-- =============================================================
+			VAR _Valor    = [IPCA 12M %]
+			VAR _Delta    = [Δ 12M vs Mês Anterior (p.p.)]
+			VAR _Texto    = FORMAT ( _Valor * 100, "0.00" )                 -- ex.: "4,52" / "-0,30"
+			VAR _Inteiro  = LEFT ( _Texto, LEN ( _Texto ) - 3 )                -- "4"   (preserva o sinal)
+			VAR _Decimal  = RIGHT ( _Texto, 3 )                                -- ",52"
+			VAR _CorDec   = "#C9C9D3"                                          -- decimais "apagados"
+			VAR _CorTxt   = SWITCH ( TRUE (), _Delta > 0, "#E5484D", _Delta < 0, "#22A06B", "#8A8AA0" )
+			VAR _CorFundo = SWITCH ( TRUE (), _Delta > 0, "#FDECEC", _Delta < 0, "#E6F6EE", "#F0F0F5" )
+			VAR _Seta     = SWITCH ( TRUE (), _Delta > 0, "↑", _Delta < 0, "↓", "→" )
+			VAR _Badge    =
+			    IF (
+			        NOT ISBLANK ( _Delta ),
+			        "<span style='background:" & _CorFundo & ";color:" & _CorTxt
+			            & ";padding:3px 8px;border-radius:8px;font-size:12px;font-weight:600;white-space:nowrap;'>"
+			            & _Seta & " " & FORMAT ( ABS ( _Delta ), "0.00" ) & " p.p.</span>"
+			    )
+			VAR _Narrativa = "Meta: " & FORMAT ( [Meta Ano %], "0.0%" ) & " · Teto: " & FORMAT ( [Limite Superior %], "0.0%" )
+			RETURN
+			    IF (
+			        ISBLANK ( _Valor ),
+			        "<div style='font-family:Segoe UI;color:#8A8AA0;padding:16px;'>Sem dados no período</div>",
+			        "<div style='font-family:Segoe UI,sans-serif;padding:16px 18px;background:#FFFFFF;"
+			            & "border-radius:16px;display:flex;justify-content:space-between;gap:12px;height:100%;box-sizing:border-box;'>"
+			        -- coluna esquerda: título, valor, badge e narrativa
+			        & "<div style='min-width:0;'>"
+			        & "<div style='font-size:15px;color:#1A1A2E;font-weight:600;'>IPCA 12 meses</div>"
+			        & "<div style='font-size:34px;font-weight:700;color:#1A1A2E;margin:6px 0 8px 0;letter-spacing:-0.5px;'>"
+			            & _Inteiro & "<span style='color:" & _CorDec & ";'>" & _Decimal & "%</span></div>"
+			        & _Badge
+			        & "<div style='font-size:12px;color:#8A8AA0;margin-top:10px;line-height:1.35;'>" & _Narrativa & "</div>"
+			        & "</div>"
+			        -- coluna direita: mini-indicadores
+			        & "<div style='display:flex;flex-direction:column;justify-content:flex-end;min-width:118px;'>"
+			        & "<div style='display:flex;align-items:center;gap:8px;margin-top:10px;'>"
+			            & "<div style='width:30px;height:30px;border-radius:50%;background:#E9E4FF;color:#7B61FF;"
+			            & "display:flex;align-items:center;justify-content:center;font-size:14px;'>▲</div>"
+			            & "<div style='font-size:12px;line-height:1.25;color:#1A1A2E;font-weight:600;'>"
+			            & [Status Meta] & "<br><span style='color:#8A8AA0;font-weight:400;'>Status da meta</span></div></div>"
+			        & "<div style='display:flex;align-items:center;gap:8px;margin-top:10px;'>"
+			            & "<div style='width:30px;height:30px;border-radius:50%;background:#E9E4FF;color:#7B61FF;"
+			            & "display:flex;align-items:center;justify-content:center;font-size:14px;'>⧗</div>"
+			            & "<div style='font-size:12px;line-height:1.25;color:#1A1A2E;font-weight:600;'>"
+			            & FORMAT ( [Meses Consecutivos Acima do Teto], "0" ) & " meses" & "<br><span style='color:#8A8AA0;font-weight:400;'>Acima do teto</span></div></div>"
+			        & "</div></div>"
+			    )
+		displayFolder: 07 Textos e HTML
+		lineageTag: 10b29614-191e-517e-842f-936d56469e82
+
+	/// Faixa com barra de progresso do IPCA 12M até o teto da meta.
+	measure 'HTML Status Meta' =
+			-- =============================================================
+			-- HTML Status Meta
+			-- Objetivo : barra de progresso do IPCA 12M com a banda de tolerância em lavanda.
+			-- Regra    : posições em % da largura; FORMAT "0" gera inteiros (o CSS não aceita
+			--            vírgula decimal, que a cultura pt-BR produziria com "0.0").
+			-- =============================================================
+			VAR _IPCA    = [IPCA 12M %]
+			VAR _Piso    = [Limite Inferior %]
+			VAR _Meta    = [Meta Ano %]
+			VAR _Teto    = [Limite Superior %]
+			VAR _Escala  = MAX ( _Teto * 1.4, _IPCA * 1.1 )                    -- fim da barra
+			VAR _NumPiso = ROUND ( DIVIDE ( _Piso, _Escala ) * 100, 0 )     -- posições numéricas
+			VAR _NumTeto = ROUND ( DIVIDE ( _Teto, _Escala ) * 100, 0 )
+			VAR _PctIPCA = FORMAT ( MAX ( MIN ( DIVIDE ( _IPCA, _Escala ), 1 ), 0 ) * 100, "0" )
+			VAR _PctPiso = FORMAT ( _NumPiso, "0" )
+			VAR _PctMeta = FORMAT ( DIVIDE ( _Meta, _Escala ) * 100, "0" )
+			VAR _PctTeto = FORMAT ( _NumTeto, "0" )
+			VAR _PctBanda = FORMAT ( _NumTeto - _NumPiso, "0" )
+			VAR _Status  = [Status Meta]
+			VAR _Cor     = IF ( _Status = "Acima do teto", "#E5484D", "#7B61FF" )
+			VAR _Marcador =                                                    -- linha vertical fina
+			    "<div style='position:absolute;top:-4px;width:2px;height:18px;background:#1A1A2E;opacity:.35;left:"
+			RETURN
+			    IF (
+			        NOT ISBLANK ( _IPCA ),
+			        "<div style='font-family:Segoe UI,sans-serif;padding:12px 16px;'>"
+			        & "<div style='display:flex;justify-content:space-between;font-size:12px;color:#8A8AA0;margin-bottom:8px;'>"
+			            & "<span><b style='color:#1A1A2E;'>Status da meta:</b> "
+			            & "<span style='color:" & _Cor & ";font-weight:600;'>" & _Status & "</span></span>"
+			            & "<span>IPCA 12M " & FORMAT ( _IPCA, "0.00%" ) & "</span></div>"
+			        & "<div style='position:relative;height:10px;border-radius:6px;background:#F0F0F5;'>"
+			            -- banda de tolerância (piso → teto) em lavanda
+			            & "<div style='position:absolute;height:10px;background:#E9E4FF;left:" & _PctPiso
+			                & "%;width:" & _PctBanda & "%;'></div>"
+			            -- progresso do IPCA
+			            & "<div style='position:absolute;height:10px;border-radius:6px;background:" & _Cor
+			                & ";width:" & _PctIPCA & "%;opacity:.9;'></div>"
+			            & _Marcador & _PctMeta & "%;'></div>"
+			            & _Marcador & _PctTeto & "%;'></div>"
+			        & "</div>"
+			        & "<div style='position:relative;height:16px;font-size:10px;color:#8A8AA0;margin-top:4px;'>"
+			            & "<span style='position:absolute;left:" & _PctPiso & "%;transform:translateX(-50%);'>Piso "
+			                & FORMAT ( _Piso, "0.0%" ) & "</span>"
+			            & "<span style='position:absolute;left:" & _PctMeta & "%;transform:translateX(-50%);'>Meta "
+			                & FORMAT ( _Meta, "0.0%" ) & "</span>"
+			            & "<span style='position:absolute;left:" & _PctTeto & "%;transform:translateX(-50%);'>Teto "
+			                & FORMAT ( _Teto, "0.0%" ) & "</span>"
+			        & "</div></div>"
+			    )
+		displayFolder: 07 Textos e HTML
+		lineageTag: d6edabd9-5ed3-5f71-8656-b73edf16ebe5
+
+	/// Tabela-resumo dos grupos com mini barras de contribuição.
+	measure 'HTML Tabela Grupos' =
+			-- =============================================================
+			-- HTML Tabela Grupos
+			-- Objetivo : ranking dos 9 grupos com barra proporcional à contribuição.
+			-- Regra    : barra roxa = pressão de alta; verde = grupo que puxou o índice para baixo.
+			--            Ordenado pela contribuição (CONCATENATEX ... [@Contrib], DESC).
+			-- =============================================================
+			VAR _Tabela =
+			    ADDCOLUMNS (
+			        ALL ( dGrupoIPCA ),
+			        "@Contrib", [Contribuição Grupo (p.p.)],
+			        "@Var", [Variação Grupo Mensal %]
+			    )
+			VAR _MaxAbs = MAXX ( _Tabela, ABS ( [@Contrib] ) )
+			VAR _Linhas =
+			    CONCATENATEX (
+			        _Tabela,
+			        VAR _Larg = FORMAT ( DIVIDE ( ABS ( [@Contrib] ), _MaxAbs ) * 100, "0" )
+			        VAR _Cor  = IF ( [@Contrib] < 0, "#22A06B", "#7B61FF" )
+			        RETURN
+			            "<tr style='border-bottom:1px solid #F0F0F5;'>"
+			            & "<td style='padding:6px 4px;'><span style='display:inline-block;width:8px;height:8px;"
+			                & "border-radius:50%;margin-right:6px;background:" & dGrupoIPCA[CorHex] & ";'></span>"
+			                & dGrupoIPCA[Grupo] & "</td>"
+			            & "<td style='padding:6px 4px;text-align:right;color:#8A8AA0;'>"
+			                & FORMAT ( [@Var], "0.00%" ) & "</td>"
+			            & "<td style='padding:6px 4px;width:40%;'><div style='background:#F0F0F5;border-radius:4px;height:8px;'>"
+			                & "<div style='height:8px;border-radius:4px;background:" & _Cor & ";width:" & _Larg
+			                & "%;'></div></div></td>"
+			            & "<td style='padding:6px 4px;text-align:right;font-weight:600;'>"
+			                & FORMAT ( [@Contrib], "0.00" ) & "</td></tr>",
+			        "",
+			        [@Contrib], DESC
+			    )
+			RETURN
+			    IF (
+			        NOT ISBLANK ( _MaxAbs ),
+			        "<table style='font-family:Segoe UI,sans-serif;font-size:12px;color:#1A1A2E;width:100%;border-collapse:collapse;'>"
+			        & "<tr style='color:#8A8AA0;font-size:11px;text-align:left;'>"
+			            & "<th style='padding:4px;font-weight:400;'>Grupo</th>"
+			            & "<th style='padding:4px;font-weight:400;text-align:right;'>Var. mês</th>"
+			            & "<th style='padding:4px;font-weight:400;'>Contribuição</th>"
+			            & "<th style='padding:4px;font-weight:400;text-align:right;'>p.p.</th></tr>"
+			        & _Linhas
+			        & "</table>"
+			    )
+		displayFolder: 07 Textos e HTML
+		lineageTag: c066f9e5-824a-5c69-96c3-2bb5c8ad890b
+
+	/// Cabeçalho do relatório com título, frase da meta e 'Dados até'.
+	measure 'HTML Cabeçalho Narrativo' =
+			-- =============================================================
+			-- HTML Cabeçalho Narrativo
+			-- Objetivo : cabeçalho do relatório com título, frase da meta e 'Dados até'.
+			-- =============================================================
+			VAR _Titulo = [Título Visão Geral]
+			VAR _Frase  = [Subtítulo Meta]
+			VAR _Dados  = [Texto Dados Até]
+			VAR _Status = [Status Meta]
+			VAR _Cor    = IF ( _Status = "Acima do teto", "#E5484D", "#22A06B" )
+			RETURN
+			    "<div style='font-family:Segoe UI,sans-serif;display:flex;justify-content:space-between;align-items:center;padding:4px 8px;'>"
+			    & "<div><div style='font-size:20px;font-weight:600;color:#1A1A2E;'>" & _Titulo & "</div>"
+			    & "<div style='font-size:12px;color:#8A8AA0;margin-top:2px;'>"
+			        & "<span style='display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:6px;background:"
+			        & _Cor & ";'></span>" & _Frase & "</div></div>"
+			    & "<div style='font-size:11px;color:#8A8AA0;background:#FFFFFF;border:1px solid #ECECF2;"
+			        & "border-radius:12px;padding:4px 10px;white-space:nowrap;'>" & _Dados & "</div>"
+			    & "</div>"
+		displayFolder: 07 Textos e HTML
+		lineageTag: 09b90f79-c0e3-5726-a573-10c236b674ef
+
+	/// Sparkline SVG dos últimos 24 meses do indicador 12M (URL da imagem).
+	measure 'SVG Sparkline 12M' =
+			-- =============================================================
+			-- SVG Sparkline 12M
+			-- Objetivo : minigráfico do 12M dentro de tabelas nativas (uma linha por indicador).
+			-- Regra    : últimos 24 meses; coordenadas inteiras numa escala ×10 (o CSS/SVG
+			--            não aceita vírgula decimal); '#' codificado como %23 no data URI.
+			-- Uso      : categoria de dados = URL da imagem; tabela com dIndicador[Indicador].
+			-- =============================================================
+			VAR _DataFim = [_Data Referência]
+			VAR _Pontos  =
+			    CALCULATETABLE (
+			        FILTER (
+			            ADDCOLUMNS ( VALUES ( dCalendario[Data] ), "@V", [Indicador 12M %] ),
+			            NOT ISBLANK ( [@V] )
+			        ),
+			        REMOVEFILTERS ( dCalendario ),
+			        dCalendario[Data] > EDATE ( _DataFim, -24 ),
+			        dCalendario[Data] <= _DataFim
+			    )
+			VAR _Min    = MINX ( _Pontos, [@V] )
+			VAR _Max    = MAXX ( _Pontos, [@V] )
+			VAR _Ini    = MINX ( _Pontos, dCalendario[Data] )
+			VAR _N      = COUNTROWS ( _Pontos )
+			VAR _PassoX = DIVIDE ( 2300, _N - 1 )                              -- largura 2300 (escala ×10)
+			VAR _Coord  =                                                      -- "x,y x,y ..." inteiros
+			    ADDCOLUMNS (
+			        _Pontos,
+			        "@X", DATEDIFF ( _Ini, dCalendario[Data], MONTH ) * _PassoX,
+			        "@Y", 360 - DIVIDE ( [@V] - _Min, _Max - _Min, 0.5 ) * 320
+			    )
+			VAR _Linha  =
+			    CONCATENATEX ( _Coord, FORMAT ( [@X], "0" ) & "," & FORMAT ( [@Y], "0" ), " ", dCalendario[Data], ASC )
+			VAR _Ult    = TOPN ( 1, _Coord, dCalendario[Data], DESC )
+			VAR _UltX   = FORMAT ( MAXX ( _Ult, [@X] ), "0" )
+			VAR _UltY   = FORMAT ( MAXX ( _Ult, [@Y] ), "0" )
+			RETURN
+			    IF (
+			        _N >= 2,
+			        "data:image/svg+xml;utf8,"
+			        & "<svg xmlns='http://www.w3.org/2000/svg' viewBox='-40 -40 2380 480'>"
+			        & "<polyline fill='none' stroke='%237B61FF' stroke-width='28' stroke-linejoin='round' "
+			        & "stroke-linecap='round' points='" & _Linha & "'/>"
+			        & "<circle cx='" & _UltX & "' cy='" & _UltY & "' r='40' fill='%237B61FF'/>"
+			        & "</svg>"
+			    )
+		displayFolder: 07 Textos e HTML
+		lineageTag: 16494c91-9b78-527a-8ec0-7d88f829f610
+		dataCategory: ImageUrl
+
+	/// Hex do status da meta (vermelho acima do teto).
+	measure 'Cor Status Meta' =
+			-- =============================================================
+			-- Cor Status Meta
+			-- Objetivo : hex do status da meta (vermelho acima do teto).
+			-- =============================================================
+			SWITCH (
+			    [Status Meta],
+			    "Acima do teto", "#E5484D",
+			    "Abaixo do piso", "#5B45D6",
+			    "Dentro", "#22A06B",
+			    "#8A8AA0"
+			)
+		displayFolder: 08 Auxiliares
+		lineageTag: 9a1e67ad-30ee-5a7b-85ed-9be270cf27c3
+
+	/// Cor da coluna anual: negativa se estourou o teto.
+	measure 'Cor Coluna Realizado vs Teto' =
+			-- =============================================================
+			-- Cor Coluna Realizado vs Teto
+			-- Objetivo : cor da coluna anual: negativa se estourou o teto.
+			-- =============================================================
+			VAR _Realizado = [IPCA Acum. Ano %]
+			VAR _Teto      = [Limite Superior %]
+			RETURN
+			    IF ( _Realizado > _Teto, "#E5484D", "#7B61FF" )
+		displayFolder: 08 Auxiliares
+		lineageTag: b31ec37d-7524-5749-8659-b8e7b8bb0d41
+
+	/// Vermelho se a inflação subiu vs mês anterior, verde se caiu.
+	measure 'Cor Variação' =
+			-- =============================================================
+			-- Cor Variação
+			-- Objetivo : vermelho se a inflação subiu vs mês anterior, verde se caiu.
+			-- =============================================================
+			VAR _Delta = [Variação vs Mês Anterior (p.p.)]
+			RETURN
+			    SWITCH ( TRUE (), _Delta > 0, "#E5484D", _Delta < 0, "#22A06B", "#8A8AA0" )
+		displayFolder: 08 Auxiliares
+		lineageTag: 73d38c2d-75b1-5437-94dd-cff276e6809f
+
+	/// Fundo do heatmap grupo × mês na paleta do projeto.
+	measure 'Cor Heatmap Grupo' =
+			-- =============================================================
+			-- Cor Heatmap Grupo
+			-- Objetivo : fundo do heatmap grupo × mês na paleta do projeto.
+			-- =============================================================
+			VAR _V = [Variação Grupo Mensal %]
+			RETURN
+			    SWITCH (
+			        TRUE (),
+			        ISBLANK ( _V ), BLANK (),
+			        _V < 0, "#E6F6EE",           -- deflação: verde suave
+			        _V < 0.003, "#F3F0FF",       -- até 0,30%
+			        _V < 0.006, "#E9E4FF",       -- até 0,60%
+			        _V < 0.01, "#B9A8FF",        -- até 1,00%
+			        "#7B61FF"                    -- acima de 1,00%
+			    )
+		displayFolder: 08 Auxiliares
+		lineageTag: 4fc67d06-e274-5733-a8b3-38fe1124ffbd
+
+	/// Texto branco sobre as células mais escuras do heatmap.
+	measure 'Cor Fonte Heatmap Grupo' =
+			-- =============================================================
+			-- Cor Fonte Heatmap Grupo
+			-- Objetivo : texto branco sobre as células mais escuras do heatmap.
+			-- =============================================================
+			VAR _V = [Variação Grupo Mensal %]
+			RETURN
+			    IF ( _V >= 0.01, "#FFFFFF", "#1A1A2E" )
+		displayFolder: 08 Auxiliares
+		lineageTag: 5092ba54-c9d8-5f17-886d-3d8d156e30ff
+
+	/// Cor fixa do grupo (dGrupoIPCA[CorHex]).
+	measure 'Cor Grupo' =
+			-- =============================================================
+			-- Cor Grupo
+			-- Objetivo : cor fixa do grupo (dGrupoIPCA[CorHex]).
+			-- =============================================================
+			SELECTEDVALUE ( dGrupoIPCA[CorHex], "#C9C9D3" )
+		displayFolder: 08 Auxiliares
+		lineageTag: 3ae2b892-2cde-51b4-abb0-b67ba0caf17e
+
+	/// Roxo para juro real positivo, vermelho para negativo.
+	measure 'Cor Juro Real' =
+			-- =============================================================
+			-- Cor Juro Real
+			-- Objetivo : roxo para juro real positivo, vermelho para negativo.
+			-- =============================================================
+			IF ( [Juro Real Ex-Post %] < 0, "#E5484D", "#7B61FF" )
+		displayFolder: 08 Auxiliares
+		lineageTag: 3a268b36-e033-50b8-954f-31f39a30b81f
+
+	/// IPCA 12M calculado (DAX) menos a série oficial SGS 13522.
+	measure 'Checagem IPCA 12M (p.p.)' =
+			-- =============================================================
+			-- Checagem IPCA 12M (p.p.)
+			-- Objetivo : validar a regra de composição do IPCA 12M contra o número oficial.
+			-- Regra    : diferença em p.p. com ambos arredondados a 2 casas (como publicados).
+			--            Esperado: 0,00 (até ±0,02 por arredondamento das taxas mensais).
+			-- =============================================================
+			VAR _Calc    = [IPCA 12M %]
+			VAR _Oficial = [IPCA 12M % (SGS 13522)]
+			RETURN
+			    IF (
+			        NOT ISBLANK ( _Calc ) && NOT ISBLANK ( _Oficial ),
+			        ROUND ( _Calc * 100, 2 ) - ROUND ( _Oficial * 100, 2 )
+			    )
+		formatString: +0.00" p.p.";-0.00" p.p.";0.00" p.p."
+		displayFolder: 08 Auxiliares
+		lineageTag: 11d9e5d7-3bee-5dc6-a62a-92c414658412
+
+	/// OK / Arredondamento / Divergente.
+	measure 'Checagem IPCA 12M Status' =
+			-- =============================================================
+			-- Checagem IPCA 12M Status
+			-- Objetivo : OK / Arredondamento / Divergente.
+			-- =============================================================
+			VAR _Dif = ABS ( [Checagem IPCA 12M (p.p.)] )
+			RETURN
+			    SWITCH (
+			        TRUE (),
+			        ISBLANK ( _Dif ), BLANK (),
+			        _Dif <= 0.01, "OK",
+			        _Dif <= 0.05, "Arredondamento",
+			        "Divergente"
+			    )
+		displayFolder: 08 Auxiliares
+		lineageTag: c64b4456-b1ea-55cb-aa06-75c45ac91f99
+
+	/// Meses do período com |diferença| > 0,01 p.p.
+	measure 'Checagem Meses Divergentes' =
+			-- =============================================================
+			-- Checagem Meses Divergentes
+			-- Objetivo : meses do período com |diferença| > 0,01 p.p.
+			-- =============================================================
+			VAR _Tabela =
+			    ADDCOLUMNS (
+			        VALUES ( dCalendario[Data] ),
+			        "@Dif", ABS ( [Checagem IPCA 12M (p.p.)] )
+			    )
+			RETURN
+			    COUNTROWS ( FILTER ( _Tabela, [@Dif] > 0.01 ) ) + 0
+		formatString: 0
+		displayFolder: 08 Auxiliares
+		lineageTag: c2029f9f-7c7d-51f0-bf9d-9f7bd9be16b4
+
+	/// IPCA 12M apenas no último mês com dado (série-marcador do gráfico).
+	measure 'Marcador Último Ponto IPCA 12M' =
+			-- =============================================================
+			-- Marcador Último Ponto IPCA 12M
+			-- Objetivo : destacar o último ponto da linha IPCA 12M × Meta.
+			-- Uso      : 2ª série do gráfico de linhas, só com marcador e rótulo (linha oculta).
+			-- =============================================================
+			VAR _Mes    = MAX ( dCalendario[Data] )
+			VAR _Ultimo = [Último Mês Disponível]
+			RETURN
+			    IF ( _Mes = _Ultimo, [IPCA 12M %] )
+		formatString: 0.00%
+		displayFolder: 08 Auxiliares
+		lineageTag: 99c054ae-323e-5988-bb5a-1a49a970776c
+
+	/// Rótulo 'Acima do teto em X p.p.' para as colunas dos anos que estouraram.
+	measure 'Rótulo Acima do Teto' =
+			-- =============================================================
+			-- Rótulo Acima do Teto
+			-- Objetivo : rótulo 'Acima do teto em X p.p.' para as colunas dos anos que estouraram.
+			-- =============================================================
+			VAR _Excesso = [Acima do Teto no Ano (p.p.)]
+			RETURN
+			    IF ( NOT ISBLANK ( _Excesso ), "Acima do teto em " & FORMAT ( _Excesso, "0.00" ) & " p.p." )
+		displayFolder: 07 Textos e HTML
+		lineageTag: 644477da-f592-58dd-8b3d-3b0f7444505b
+
+	/// Código SGS do indicador ativo no seletor; IPCA (433) quando não há seleção única válida.
+	measure '_Sel Código Indicador' =
+			-- Indicador escolhido no seletor (somente séries de inflação com taxa mensal).
+			-- Sem seleção única (ou seleção inválida) => IPCA (433), o indicador oficial da meta.
+			VAR _Cod  = SELECTEDVALUE ( dIndicador[CodigoSGS] )
+			VAR _Tipo = SELECTEDVALUE ( dIndicador[TipoTaxa] )
+			VAR _Cat  = SELECTEDVALUE ( dIndicador[Categoria] )
+			RETURN
+			    IF ( NOT ISBLANK ( _Cod ) && _Tipo = "Mensal" && _Cat = "Inflação", _Cod, 433 )
+		formatString: 0
+		isHidden
+		displayFolder: 09 Dashboard\06 Auxiliares
+		lineageTag: e7ee271b-60f3-5d1a-81f6-4a746dbdcd2a
+
+	/// Nome do indicador ativo no seletor (IPCA por padrão).
+	measure 'Indicador Selecionado' =
+			VAR _Cod = [_Sel Código Indicador]
+			    RETURN
+			        CALCULATE ( MAX ( dIndicador[Indicador] ), REMOVEFILTERS ( dIndicador ), dIndicador[CodigoSGS] = _Cod )
+		displayFolder: 09 Dashboard\01 KPIs
+		lineageTag: 893be77d-bfed-55d3-b2e2-4ec2f9382260
+
+	/// Último mês com dado publicado do indicador ativo, dentro do período filtrado.
+	measure 'KPI Data Referência' =
+			VAR _Cod = [_Sel Código Indicador]
+			    RETURN
+			        CALCULATE ( [_Data Referência], REMOVEFILTERS ( dIndicador ), dIndicador[CodigoSGS] = _Cod )
+		formatString: mmm/yyyy
+		displayFolder: 09 Dashboard\01 KPIs
+		lineageTag: d04680d6-f660-560a-b1b2-9739dd79d0e4
+
+	/// Taxa do último mês do indicador ativo (BLANK = sem dado, diferente de 0%).
+	measure 'KPI Mensal %' =
+			VAR _Cod = [_Sel Código Indicador]
+			    RETURN
+			        CALCULATE ( [Indicador Mensal %], REMOVEFILTERS ( dIndicador ), dIndicador[CodigoSGS] = _Cod )
+		formatString: 0.00%
+		displayFolder: 09 Dashboard\01 KPIs
+		lineageTag: 425d888f-52ff-5fa2-9261-4c53cfce1bc1
+
+	/// Acumulado no ano (composição multiplicativa) até o mês de referência do indicador ativo.
+	measure 'KPI Acum. Ano %' =
+			VAR _Cod = [_Sel Código Indicador]
+			    RETURN
+			        CALCULATE ( [Indicador Acum. Ano %], REMOVEFILTERS ( dIndicador ), dIndicador[CodigoSGS] = _Cod )
+		formatString: 0.00%
+		displayFolder: 09 Dashboard\01 KPIs
+		lineageTag: a4dd260d-de49-5447-a0a2-e8e8234970e5
+
+	/// Acumulado em 12 meses (exige 12 meses publicados) do indicador ativo.
+	measure 'KPI 12M %' =
+			VAR _Cod = [_Sel Código Indicador]
+			    RETURN
+			        CALCULATE ( [Indicador 12M %], REMOVEFILTERS ( dIndicador ), dIndicador[CodigoSGS] = _Cod )
+		formatString: 0.00%
+		displayFolder: 09 Dashboard\01 KPIs
+		lineageTag: d19a1fc1-7f42-55d1-ae24-77e2ba36eeb0
+
+	/// Taxa mensal média equivalente (geométrica) dos últimos 12 meses.
+	measure 'KPI Média Mensal 12M %' =
+			-- Média geométrica mensal equivalente à janela de 12 meses: (1 + 12M)^(1/12) - 1
+			VAR _12M = [KPI 12M %]
+			RETURN
+			    IF ( NOT ISBLANK ( _12M ), POWER ( 1 + _12M, 1 / 12 ) - 1 )
+		formatString: 0.00%
+		displayFolder: 09 Dashboard\01 KPIs
+		lineageTag: f075f610-09f7-5bf5-a91b-42189339a21b
+
+	/// Meses com dado publicado no ano do mês de referência.
+	measure 'KPI Meses Apurados no Ano' =
+			VAR _Cod = [_Sel Código Indicador]
+			    VAR _Data = [KPI Data Referência]
+			    RETURN
+			        IF (
+			            NOT ISBLANK ( _Data ),
+			            CALCULATE (
+			                COUNTROWS ( fIndicadores ),
+			                REMOVEFILTERS ( dCalendario ),
+			                REMOVEFILTERS ( dIndicador ),
+			                dIndicador[CodigoSGS] = _Cod,
+			                dCalendario[Data] >= DATE ( YEAR ( _Data ), 1, 1 ),
+			                dCalendario[Data] <= _Data
+			            )
+			        )
+		formatString: 0
+		displayFolder: 09 Dashboard\01 KPIs
+		lineageTag: 4f245163-0b6a-50e8-ba31-5154dff6b923
+
+	/// Meses do ano com taxa positiva (0 quando todos ≤ 0).
+	measure 'KPI Meses em Alta no Ano' =
+			VAR _Cod = [_Sel Código Indicador]
+			    VAR _Data = [KPI Data Referência]
+			    RETURN
+			        IF (
+			            NOT ISBLANK ( _Data ),
+			            CALCULATE (
+			                COUNTROWS ( fIndicadores ),
+			                REMOVEFILTERS ( dCalendario ),
+			                REMOVEFILTERS ( dIndicador ),
+			                dIndicador[CodigoSGS] = _Cod,
+			                dCalendario[Data] >= DATE ( YEAR ( _Data ), 1, 1 ),
+			                dCalendario[Data] <= _Data,
+			                fIndicadores[Valor] > 0
+			            ) + 0
+			        )
+		formatString: 0
+		displayFolder: 09 Dashboard\01 KPIs
+		lineageTag: 39ef579a-6ade-5c3c-97ac-1b52d6c313cd
+
+	/// Taxa do mês anterior ao de referência.
+	measure 'KPI Mensal Mês Anterior %' =
+			VAR _Data = [KPI Data Referência]
+			RETURN
+			    IF (
+			        NOT ISBLANK ( _Data ),
+			        CALCULATE ( [KPI Mensal %], REMOVEFILTERS ( dCalendario ), dCalendario[Data] = EDATE ( _Data, -1 ) )
+			    )
+		formatString: 0.00%
+		displayFolder: 09 Dashboard\02 Comparações
+		lineageTag: 63781923-c21d-5bc8-9a37-fb674bece9ca
+
+	/// Taxa do mesmo mês do ano anterior.
+	measure 'KPI Mensal Mesmo Mês Ano Anterior %' =
+			VAR _Data = [KPI Data Referência]
+			RETURN
+			    IF (
+			        NOT ISBLANK ( _Data ),
+			        CALCULATE ( [KPI Mensal %], REMOVEFILTERS ( dCalendario ), dCalendario[Data] = EDATE ( _Data, -12 ) )
+			    )
+		formatString: 0.00%
+		displayFolder: 09 Dashboard\02 Comparações
+		lineageTag: 0cd93f99-4bec-5dc2-8245-b38b106d512b
+
+	/// Acumulado de janeiro até o mesmo mês do ano anterior.
+	measure 'KPI Acum. Ano Mesmo Período Ano Anterior %' =
+			VAR _Data = [KPI Data Referência]
+			RETURN
+			    IF (
+			        NOT ISBLANK ( _Data ),
+			        CALCULATE ( [KPI Acum. Ano %], REMOVEFILTERS ( dCalendario ), dCalendario[Data] = EDATE ( _Data, -12 ) )
+			    )
+		formatString: 0.00%
+		displayFolder: 09 Dashboard\02 Comparações
+		lineageTag: ad867b77-9d68-5ea7-917e-5dde91eca066
+
+	/// Acumulado 12M encerrado no mês anterior.
+	measure 'KPI 12M Mês Anterior %' =
+			VAR _Data = [KPI Data Referência]
+			RETURN
+			    IF (
+			        NOT ISBLANK ( _Data ),
+			        CALCULATE ( [KPI 12M %], REMOVEFILTERS ( dCalendario ), dCalendario[Data] = EDATE ( _Data, -1 ) )
+			    )
+		formatString: 0.00%
+		displayFolder: 09 Dashboard\02 Comparações
+		lineageTag: 2d4118f0-9c34-54a5-9acf-43eb6a0e666f
+
+	/// Acumulado da janela de 12 meses imediatamente anterior (encerrada 12 meses antes).
+	measure 'KPI 12M Janela Anterior %' =
+			VAR _Data = [KPI Data Referência]
+			RETURN
+			    IF (
+			        NOT ISBLANK ( _Data ),
+			        CALCULATE ( [KPI 12M %], REMOVEFILTERS ( dCalendario ), dCalendario[Data] = EDATE ( _Data, -12 ) )
+			    )
+		formatString: 0.00%
+		displayFolder: 09 Dashboard\02 Comparações
+		lineageTag: 084afbde-895d-545d-8b0f-10b48d7c3e94
+
+	/// Aceleração (+) ou desaceleração (−) da taxa mensal vs mês anterior.
+	measure 'KPI Δ Mensal (p.p.)' =
+			-- Diferença em pontos percentuais (não é variação relativa).
+			VAR _A = [KPI Mensal %]
+			VAR _B = [KPI Mensal Mês Anterior %]
+			RETURN
+			    IF ( NOT ISBLANK ( _A ) && NOT ISBLANK ( _B ), ( _A - _B ) * 100 )
+		formatString: +0.00" p.p.";-0.00" p.p.";0.00" p.p."
+		displayFolder: 09 Dashboard\02 Comparações
+		lineageTag: 33c6f620-fb13-5683-b886-6694a9837b56
+
+	/// Acumulado no ano menos o mesmo período do ano anterior.
+	measure 'KPI Δ Acum. Ano (p.p.)' =
+			-- Diferença em pontos percentuais (não é variação relativa).
+			VAR _A = [KPI Acum. Ano %]
+			VAR _B = [KPI Acum. Ano Mesmo Período Ano Anterior %]
+			RETURN
+			    IF ( NOT ISBLANK ( _A ) && NOT ISBLANK ( _B ), ( _A - _B ) * 100 )
+		formatString: +0.00" p.p.";-0.00" p.p.";0.00" p.p."
+		displayFolder: 09 Dashboard\02 Comparações
+		lineageTag: 478f9625-28e6-570c-a4ef-a5c19903f0ea
+
+	/// Acumulado 12M menos a janela de 12 meses anterior.
+	measure 'KPI Δ 12M vs Janela Anterior (p.p.)' =
+			-- Diferença em pontos percentuais (não é variação relativa).
+			VAR _A = [KPI 12M %]
+			VAR _B = [KPI 12M Janela Anterior %]
+			RETURN
+			    IF ( NOT ISBLANK ( _A ) && NOT ISBLANK ( _B ), ( _A - _B ) * 100 )
+		formatString: +0.00" p.p.";-0.00" p.p.";0.00" p.p."
+		displayFolder: 09 Dashboard\02 Comparações
+		lineageTag: c150ea49-8f41-582e-8267-651946ca23f5
+
+	/// Variação do acumulado 12M em relação ao mês anterior.
+	measure 'KPI Δ 12M vs Mês Anterior (p.p.)' =
+			-- Diferença em pontos percentuais (não é variação relativa).
+			VAR _A = [KPI 12M %]
+			VAR _B = [KPI 12M Mês Anterior %]
+			RETURN
+			    IF ( NOT ISBLANK ( _A ) && NOT ISBLANK ( _B ), ( _A - _B ) * 100 )
+		formatString: +0.00" p.p.";-0.00" p.p.";0.00" p.p."
+		displayFolder: 09 Dashboard\02 Comparações
+		lineageTag: 7cd87560-6161-5a33-8a61-9a10b84cde12
+
+	/// Posição do IPCA 12M dentro do intervalo de tolerância da meta (0% = piso, 100% = teto).
+	measure 'Posição na Banda da Meta %' =
+			-- 0% = piso, 100% = teto. Pode passar de 0–100% (fora do intervalo).
+			VAR _IPCA = [IPCA 12M %]
+			VAR _Piso = [Limite Inferior %]
+			VAR _Teto = [Limite Superior %]
+			RETURN
+			    IF ( NOT ISBLANK ( _IPCA ) && _Teto > _Piso, DIVIDE ( _IPCA - _Piso, _Teto - _Piso ) )
+		formatString: 0%
+		displayFolder: 09 Dashboard\02 Comparações
+		lineageTag: 892c3b91-fdcb-5807-9aa2-13c3fa542b27
+
+	/// Grupo com a maior VARIAÇÃO percentual no mês (não confundir com maior contribuição).
+	measure 'Grupo de Maior Alta' =
+			VAR _T =
+			    FILTER (
+			        ADDCOLUMNS ( ALL ( dGrupoIPCA ), "@v", [Variação Grupo Mensal %] ),
+			        NOT ISBLANK ( [@v] )
+			    )
+			VAR _Top = TOPN ( 1, _T, [@v], DESC, dGrupoIPCA[Ordem], ASC )
+			RETURN
+			    MAXX ( _Top, dGrupoIPCA[Grupo] )
+		displayFolder: 09 Dashboard\03 Rankings e Contribuições
+		lineageTag: 37a3c0f4-00cb-5260-88d3-01ef218c5c6c
+
+	/// Maior variação mensal entre os grupos.
+	measure 'Variação do Grupo de Maior Alta %' =
+			VAR _T =
+			    FILTER (
+			        ADDCOLUMNS ( ALL ( dGrupoIPCA ), "@v", [Variação Grupo Mensal %] ),
+			        NOT ISBLANK ( [@v] )
+			    )
+			RETURN
+			    MAXX ( _T, [@v] )
+		formatString: 0.00%
+		displayFolder: 09 Dashboard\03 Rankings e Contribuições
+		lineageTag: 166a375f-aca0-5344-b19d-9d9eb76c7874
+
+	/// Grupo com a menor variação percentual no mês (maior queda, se negativa).
+	measure 'Grupo de Maior Queda' =
+			VAR _T =
+			    FILTER (
+			        ADDCOLUMNS ( ALL ( dGrupoIPCA ), "@v", [Variação Grupo Mensal %] ),
+			        NOT ISBLANK ( [@v] )
+			    )
+			VAR _Top = TOPN ( 1, _T, [@v], ASC, dGrupoIPCA[Ordem], ASC )
+			RETURN
+			    MAXX ( _Top, dGrupoIPCA[Grupo] )
+		displayFolder: 09 Dashboard\03 Rankings e Contribuições
+		lineageTag: d2e8fb21-6b19-5710-a5c7-859d49ce5f89
+
+	/// Menor variação mensal entre os grupos.
+	measure 'Variação do Grupo de Maior Queda %' =
+			VAR _T =
+			    FILTER (
+			        ADDCOLUMNS ( ALL ( dGrupoIPCA ), "@v", [Variação Grupo Mensal %] ),
+			        NOT ISBLANK ( [@v] )
+			    )
+			RETURN
+			    MINX ( _T, [@v] )
+		formatString: 0.00%
+		displayFolder: 09 Dashboard\03 Rankings e Contribuições
+		lineageTag: 1f027597-abd6-52f5-a40d-3d8d65b14c77
+
+	/// Amplitude (máx − mín) das variações mensais dos grupos, em p.p.
+	measure 'Amplitude entre Grupos (p.p.)' =
+			-- Dispersão simples: maior menos menor variação mensal entre os grupos.
+			VAR _Max = [Variação do Grupo de Maior Alta %]
+			VAR _Min = [Variação do Grupo de Maior Queda %]
+			RETURN
+			    IF ( NOT ISBLANK ( _Max ) && NOT ISBLANK ( _Min ), ( _Max - _Min ) * 100 )
+		formatString: +0.00" p.p.";-0.00" p.p.";0.00" p.p."
+		displayFolder: 09 Dashboard\03 Rankings e Contribuições
+		lineageTag: 2de696f9-b0dc-50a1-9f6e-14f37f227dbb
+
+	/// Quantidade de grupos com variação positiva no mês.
+	measure 'Grupos em Alta' =
+			VAR _T =
+			    FILTER (
+			        ADDCOLUMNS ( ALL ( dGrupoIPCA ), "@v", [Variação Grupo Mensal %] ),
+			        NOT ISBLANK ( [@v] )
+			    )
+			RETURN
+			    COUNTROWS ( FILTER ( _T, [@v] > 0 ) ) + 0
+		formatString: 0
+		displayFolder: 09 Dashboard\03 Rankings e Contribuições
+		lineageTag: a0d86e06-e233-5bf9-8993-db48562485cf
+
+	/// Quantidade de grupos com variação publicada no mês.
+	measure 'Grupos com Dado' =
+			VAR _T =
+			    FILTER (
+			        ADDCOLUMNS ( ALL ( dGrupoIPCA ), "@v", [Variação Grupo Mensal %] ),
+			        NOT ISBLANK ( [@v] )
+			    )
+			RETURN
+			    COUNTROWS ( _T ) + 0
+		formatString: 0
+		displayFolder: 09 Dashboard\03 Rankings e Contribuições
+		lineageTag: 74f57466-d0e8-5e12-9915-7747a696c0af
+
+	/// Grupo com a menor contribuição ponderada (variação × peso) no mês.
+	measure 'Grupo de Maior Alívio' =
+			VAR _T =
+			    FILTER (
+			        ADDCOLUMNS ( ALL ( dGrupoIPCA ), "@c", [Contribuição Grupo (p.p.)] ),
+			        NOT ISBLANK ( [@c] )
+			    )
+			VAR _Top = TOPN ( 1, _T, [@c], ASC, dGrupoIPCA[Ordem], ASC )
+			RETURN
+			    MAXX ( _Top, dGrupoIPCA[Grupo] )
+		displayFolder: 09 Dashboard\03 Rankings e Contribuições
+		lineageTag: 4d05da5d-f4ec-5cef-a4eb-1aec2a79e2bf
+
+	/// Menor contribuição ponderada entre os grupos, em p.p.
+	measure 'Contribuição do Grupo de Maior Alívio (p.p.)' =
+			VAR _T =
+			    FILTER (
+			        ADDCOLUMNS ( ALL ( dGrupoIPCA ), "@c", [Contribuição Grupo (p.p.)] ),
+			        NOT ISBLANK ( [@c] )
+			    )
+			RETURN
+			    MINX ( _T, [@c] )
+		formatString: +0.00" p.p.";-0.00" p.p.";0.00" p.p."
+		displayFolder: 09 Dashboard\03 Rankings e Contribuições
+		lineageTag: d4bac30c-9a30-54d8-bf61-f1f66011193a
+
+	/// Variação mensal do grupo de maior contribuição.
+	measure 'Variação do Grupo de Maior Pressão %' =
+			VAR _Grupo = [Grupo de Maior Pressão]
+			RETURN
+			    IF ( NOT ISBLANK ( _Grupo ),
+			        CALCULATE ( [Variação Grupo Mensal %], REMOVEFILTERS ( dGrupoIPCA ), dGrupoIPCA[Grupo] = _Grupo ) )
+		formatString: 0.00%
+		displayFolder: 09 Dashboard\03 Rankings e Contribuições
+		lineageTag: f9eb3ab9-f5e4-5943-8902-40f7ebf5d6a5
+
+	/// Peso (IBGE) do grupo de maior contribuição.
+	measure 'Peso do Grupo de Maior Pressão %' =
+			VAR _Grupo = [Grupo de Maior Pressão]
+			RETURN
+			    IF ( NOT ISBLANK ( _Grupo ),
+			        CALCULATE ( [Peso Grupo %], REMOVEFILTERS ( dGrupoIPCA ), dGrupoIPCA[Grupo] = _Grupo ) )
+		formatString: 0.00%
+		displayFolder: 09 Dashboard\03 Rankings e Contribuições
+		lineageTag: 028995b9-1d07-51de-8f09-e49c7ff94983
+
+	/// Contribuição (p.p.) somente nos últimos 24 meses do período — para o gráfico empilhado.
+	measure 'Contribuição Grupo Janela 24M (p.p.)' =
+			-- Contribuição por grupo limitada aos 24 meses que terminam no último mês do período filtrado.
+			VAR _Mes = MAX ( dCalendario[Data] )
+			VAR _Fim = CALCULATE ( [_Data Referência Grupos], ALLSELECTED ( dCalendario ), REMOVEFILTERS ( dGrupoIPCA ) )
+			RETURN
+			    IF ( _Mes <= _Fim && _Mes > EDATE ( _Fim, -24 ), [Contribuição Grupo (p.p.)] )
+		formatString: +0.00" p.p.";-0.00" p.p.";0.00" p.p."
+		displayFolder: 09 Dashboard\03 Rankings e Contribuições
+		lineageTag: 0be82d9f-c485-5103-a165-e68f977811b1
+
+	/// Valor do acumulado 12M só no último mês observado (marcador do gráfico).
+	measure 'Gráfico Último Ponto 12M' =
+			-- Destaca apenas o último mês com dado dentro do período selecionado.
+			VAR _Mes = MAX ( dCalendario[Data] )
+			VAR _Ult = CALCULATE ( [KPI Data Referência], ALLSELECTED ( dCalendario ) )
+			RETURN
+			    IF ( HASONEVALUE ( dCalendario[Data] ) && _Mes = _Ult, [KPI 12M %] )
+		formatString: 0.00%
+		displayFolder: 09 Dashboard\04 Gráficos e Títulos
+		lineageTag: bf8b09c4-1d06-5025-80ce-2ded133f0279
+
+	/// Violeta para contribuição positiva, lilás para negativa.
+	measure 'Cor Contribuição' =
+			VAR _C = [Contribuição Grupo (p.p.)]
+			RETURN
+			    IF ( _C < 0, "#B8A6FA", "#8064F5" )
+		displayFolder: 09 Dashboard\04 Gráficos e Títulos
+		lineageTag: d424b1e2-2a0a-50ed-b811-ca27a946bfed
+
+	/// Violeta para variação positiva, lilás para negativa.
+	measure 'Cor Variação Grupo' =
+			VAR _V = [Variação Grupo Mensal %]
+			RETURN
+			    IF ( _V < 0, "#B8A6FA", "#8064F5" )
+		displayFolder: 09 Dashboard\04 Gráficos e Títulos
+		lineageTag: 909ac875-e6fa-5643-ba2a-53d77718a89d
+
+	/// Título dinâmico do gráfico principal.
+	measure 'Título Evolução' = "Evolução da inflação · " & [Indicador Selecionado] & " acumulado em 12 meses"
+		displayFolder: 09 Dashboard\04 Gráficos e Títulos
+		lineageTag: 5075d39e-c409-5b75-a1ec-ac2865a935cf
+
+	/// Título dinâmico do ranking de contribuições.
+	measure 'Título Contribuição' =
+			VAR _D = CALCULATE ( [_Data Referência Grupos], REMOVEFILTERS ( dGrupoIPCA ) )
+			RETURN
+			    "Contribuição por grupo · IPCA " & FORMAT ( _D, "mmm/yy" ) & " (p.p.)"
+		displayFolder: 09 Dashboard\04 Gráficos e Títulos
+		lineageTag: 2264f7c6-5f98-59ad-bf85-bcbb4041c3bf
+
+	/// Título dinâmico do ranking de variações.
+	measure 'Título Variação Grupos' =
+			VAR _D = CALCULATE ( [_Data Referência Grupos], REMOVEFILTERS ( dGrupoIPCA ) )
+			RETURN
+			    "Variação do mês por grupo · " & FORMAT ( _D, "mmm/yy" )
+		displayFolder: 09 Dashboard\04 Gráficos e Títulos
+		lineageTag: 8e160793-a896-5205-bc45-1de1db28b81b
+
+	/// Título dinâmico da rosca de pesos.
+	measure 'Título Rosca Pesos' =
+			VAR _D = CALCULATE ( [_Data Referência Grupos], REMOVEFILTERS ( dGrupoIPCA ) )
+			RETURN
+			    "Peso dos grupos no IPCA · " & FORMAT ( _D, "mmm/yy" )
+		displayFolder: 09 Dashboard\04 Gráficos e Títulos
+		lineageTag: 19317cd7-36e2-5df2-8174-6bfa11da4568
+
+	/// Card executivo: taxa do último mês, aceleração vs mês anterior e contexto.
+	measure 'HTML KPI Mês' =
+			VAR _Nome  = [Indicador Selecionado]
+			VAR _Data  = [KPI Data Referência]
+			VAR _Valor = [KPI Mensal %]
+			VAR _Ant   = [KPI Mensal Mês Anterior %]
+			VAR _Delta = [KPI Δ Mensal (p.p.)]
+			VAR _AA    = [KPI Mensal Mesmo Mês Ano Anterior %]
+			VAR _Alta  = [KPI Meses em Alta no Ano]
+			VAR _Qtd   = [KPI Meses Apurados no Ano]
+			VAR _Txt = FORMAT ( _Valor * 100, "0.00" )
+			VAR _Int = LEFT ( _Txt, LEN ( _Txt ) - 3 )
+			VAR _Dec = RIGHT ( _Txt, 3 )
+			VAR _ValorHtml = _Int & "<span style='color:#C9C7D1;'>" & _Dec & "%</span>"
+			VAR _BBg = SWITCH ( TRUE (), _Delta > 0, "#FCE6E6", _Delta < 0, "#DDF5E5", "#F0EFF5" )
+			VAR _BFg = SWITCH ( TRUE (), _Delta > 0, "#D14343", _Delta < 0, "#1F8F4E", "#85838F" )
+			VAR _Seta = SWITCH ( TRUE (), _Delta > 0, "↑", _Delta < 0, "↓", "→" )
+			VAR _Badge =
+			    IF (
+			        NOT ISBLANK ( _Delta ),
+			        "<span style='display:inline-block;background:" & _BBg & ";color:" & _BFg
+			            & ";padding:3px 9px;border-radius:8px;font-size:12px;font-weight:600;white-space:nowrap;'>"
+			            & _Seta & " " & FORMAT ( ABS ( _Delta ), "0.00" ) & " p.p.</span>"
+			            & "<span style='font-size:11.5px;color:#85838F;margin-left:8px;'>" & "vs " & FORMAT ( EDATE ( _Data, -1 ), "mmm/yy" ) & " (" & FORMAT ( _Ant, "0.00%" ) & ")" & "</span>"
+			    )
+			VAR _Nota =
+			    SWITCH ( TRUE (),
+			        ISBLANK ( _Delta ), "Sem mês anterior para comparar",
+			        _Delta > 0, "Acelerou frente a " & FORMAT ( _Ant, "0.00%" ) & " no mês anterior",
+			        _Delta < 0, "Desacelerou frente a " & FORMAT ( _Ant, "0.00%" ) & " no mês anterior",
+			        "Estável frente ao mês anterior" )
+			RETURN
+			    IF ( ISBLANK ( _Valor ), "<div style='font-family:Segoe UI,Inter,sans-serif;color:#85838F;padding:18px;font-size:13px;'>Sem dados publicados para o período selecionado.</div>",
+			    "<div style='font-family:Segoe UI,Inter,sans-serif;height:100%;box-sizing:border-box;padding:14px 18px 12px 18px;display:flex;flex-direction:column;'>"
+			    & "<div style='display:flex;justify-content:space-between;align-items:center;gap:8px;'>"
+			        & "<div style='font-size:14.5px;font-weight:600;color:#25242B;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;'>" & "Inflação do mês · " & _Nome & "</div>"
+			        & "<div style='font-size:11px;color:#25242B;border:1px solid #E8E8EF;border-radius:14px;padding:3px 10px;white-space:nowrap;'>" & FORMAT ( _Data, "mmm/yyyy" ) & "</div>"
+			    & "</div>"
+			    & "<div style='font-size:32px;font-weight:700;color:#25242B;letter-spacing:-0.6px;margin:6px 0 5px 0;line-height:1.1;'>" & _ValorHtml & "</div>"
+			    & "<div style='white-space:nowrap;overflow:hidden;text-overflow:ellipsis;'>" & _Badge & "</div>"
+			    & "<div style='display:flex;justify-content:space-between;gap:10px;border-top:1px solid #F0EFF5;padding-top:8px;margin-top:auto;'>" & "<div style='display:flex;align-items:center;gap:7px;min-width:0;'><div style='width:24px;height:24px;min-width:24px;border-radius:50%;background:#E7E0FF;color:#8064F5;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;'>↺</div><div style='font-size:11.5px;line-height:1.2;color:#25242B;font-weight:600;white-space:nowrap;'>" & IF ( ISBLANK ( _AA ), "–", FORMAT ( _AA, "0.00%" )) & "<br><span style='font-size:10.5px;color:#85838F;font-weight:400;'>" & FORMAT ( EDATE ( _Data, -12 ), "mmm/yy" ) & "</span></div></div>" & "<div style='display:flex;align-items:center;gap:7px;min-width:0;'><div style='width:24px;height:24px;min-width:24px;border-radius:50%;background:#E7E0FF;color:#8064F5;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;'>▲</div><div style='font-size:11.5px;line-height:1.2;color:#25242B;font-weight:600;white-space:nowrap;'>" & _Alta & " de " & _Qtd & "<br><span style='font-size:10.5px;color:#85838F;font-weight:400;'>" & "meses em alta" & "</span></div></div>" & "</div>"
+			    & "</div>"
+			    )
+		displayFolder: 09 Dashboard\05 HTML
+		lineageTag: 2f6936ef-c852-50a8-b84f-b8c14f8fc11d
+
+	/// Card executivo: acumulado no ano vs mesmo período do ano anterior.
+	measure 'HTML KPI Acum. Ano' =
+			VAR _Nome  = [Indicador Selecionado]
+			VAR _Data  = [KPI Data Referência]
+			VAR _Valor = [KPI Acum. Ano %]
+			VAR _AA    = [KPI Acum. Ano Mesmo Período Ano Anterior %]
+			VAR _Delta = [KPI Δ Acum. Ano (p.p.)]
+			VAR _Qtd   = [KPI Meses Apurados no Ano]
+			VAR _Media = IF ( _Qtd > 0, POWER ( 1 + _Valor, 1 / _Qtd ) - 1 )
+			VAR _Txt = FORMAT ( _Valor * 100, "0.00" )
+			VAR _Int = LEFT ( _Txt, LEN ( _Txt ) - 3 )
+			VAR _Dec = RIGHT ( _Txt, 3 )
+			VAR _ValorHtml = _Int & "<span style='color:#C9C7D1;'>" & _Dec & "%</span>"
+			VAR _BBg = SWITCH ( TRUE (), _Delta > 0, "#FCE6E6", _Delta < 0, "#DDF5E5", "#F0EFF5" )
+			VAR _BFg = SWITCH ( TRUE (), _Delta > 0, "#D14343", _Delta < 0, "#1F8F4E", "#85838F" )
+			VAR _Seta = SWITCH ( TRUE (), _Delta > 0, "↑", _Delta < 0, "↓", "→" )
+			VAR _Badge =
+			    IF (
+			        NOT ISBLANK ( _Delta ),
+			        "<span style='display:inline-block;background:" & _BBg & ";color:" & _BFg
+			            & ";padding:3px 9px;border-radius:8px;font-size:12px;font-weight:600;white-space:nowrap;'>"
+			            & _Seta & " " & FORMAT ( ABS ( _Delta ), "0.00" ) & " p.p.</span>"
+			            & "<span style='font-size:11.5px;color:#85838F;margin-left:8px;'>" & "vs jan–" & FORMAT ( EDATE ( _Data, -12 ), "mmm/yy" ) & " (" & FORMAT ( _AA, "0.00%" ) & ")" & "</span>"
+			    )
+			VAR _Nota =
+			    IF ( ISBLANK ( _AA ), "Sem ano anterior para comparar",
+			        "Mesmo período de " & YEAR ( _Data ) - 1 & ": " & FORMAT ( _AA, "0.00%" ) )
+			RETURN
+			    IF ( ISBLANK ( _Valor ), "<div style='font-family:Segoe UI,Inter,sans-serif;color:#85838F;padding:18px;font-size:13px;'>Sem dados publicados para o período selecionado.</div>",
+			    "<div style='font-family:Segoe UI,Inter,sans-serif;height:100%;box-sizing:border-box;padding:14px 18px 12px 18px;display:flex;flex-direction:column;'>"
+			    & "<div style='display:flex;justify-content:space-between;align-items:center;gap:8px;'>"
+			        & "<div style='font-size:14.5px;font-weight:600;color:#25242B;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;'>" & "Acumulado no ano" & "</div>"
+			        & "<div style='font-size:11px;color:#25242B;border:1px solid #E8E8EF;border-radius:14px;padding:3px 10px;white-space:nowrap;'>" & "jan–" & FORMAT ( _Data, "mmm/yyyy" ) & "</div>"
+			    & "</div>"
+			    & "<div style='font-size:32px;font-weight:700;color:#25242B;letter-spacing:-0.6px;margin:6px 0 5px 0;line-height:1.1;'>" & _ValorHtml & "</div>"
+			    & "<div style='white-space:nowrap;overflow:hidden;text-overflow:ellipsis;'>" & _Badge & "</div>"
+			    & "<div style='display:flex;justify-content:space-between;gap:10px;border-top:1px solid #F0EFF5;padding-top:8px;margin-top:auto;'>" & "<div style='display:flex;align-items:center;gap:7px;min-width:0;'><div style='width:24px;height:24px;min-width:24px;border-radius:50%;background:#E7E0FF;color:#8064F5;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;'>Σ</div><div style='font-size:11.5px;line-height:1.2;color:#25242B;font-weight:600;white-space:nowrap;'>" & _Qtd & IF ( _Qtd = 1, " mês", " meses" ) & "<br><span style='font-size:10.5px;color:#85838F;font-weight:400;'>" & "apurados no ano" & "</span></div></div>" & "<div style='display:flex;align-items:center;gap:7px;min-width:0;'><div style='width:24px;height:24px;min-width:24px;border-radius:50%;background:#E7E0FF;color:#8064F5;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;'>≈</div><div style='font-size:11.5px;line-height:1.2;color:#25242B;font-weight:600;white-space:nowrap;'>" & FORMAT ( _Media, "0.00%" ) & "<br><span style='font-size:10.5px;color:#85838F;font-weight:400;'>" & "média mensal" & "</span></div></div>" & "</div>"
+			    & "</div>"
+			    )
+		displayFolder: 09 Dashboard\05 HTML
+		lineageTag: a92ac963-c0c3-5ddd-a31f-23ddc6701300
+
+	/// Card executivo: acumulado 12M vs janela de 12 meses anterior.
+	measure 'HTML KPI 12M' =
+			VAR _Data  = [KPI Data Referência]
+			VAR _Valor = [KPI 12M %]
+			VAR _Jan   = [KPI 12M Janela Anterior %]
+			VAR _Delta = [KPI Δ 12M vs Janela Anterior (p.p.)]
+			VAR _MesAnt = [KPI 12M Mês Anterior %]
+			VAR _DMes  = [KPI Δ 12M vs Mês Anterior (p.p.)]
+			VAR _Media = [KPI Média Mensal 12M %]
+			VAR _Txt = FORMAT ( _Valor * 100, "0.00" )
+			VAR _Int = LEFT ( _Txt, LEN ( _Txt ) - 3 )
+			VAR _Dec = RIGHT ( _Txt, 3 )
+			VAR _ValorHtml = _Int & "<span style='color:#C9C7D1;'>" & _Dec & "%</span>"
+			VAR _BBg = SWITCH ( TRUE (), _Delta > 0, "#FCE6E6", _Delta < 0, "#DDF5E5", "#F0EFF5" )
+			VAR _BFg = SWITCH ( TRUE (), _Delta > 0, "#D14343", _Delta < 0, "#1F8F4E", "#85838F" )
+			VAR _Seta = SWITCH ( TRUE (), _Delta > 0, "↑", _Delta < 0, "↓", "→" )
+			VAR _Badge =
+			    IF (
+			        NOT ISBLANK ( _Delta ),
+			        "<span style='display:inline-block;background:" & _BBg & ";color:" & _BFg
+			            & ";padding:3px 9px;border-radius:8px;font-size:12px;font-weight:600;white-space:nowrap;'>"
+			            & _Seta & " " & FORMAT ( ABS ( _Delta ), "0.00" ) & " p.p.</span>"
+			            & "<span style='font-size:11.5px;color:#85838F;margin-left:8px;'>" & "vs 12M anteriores (" & FORMAT ( _Jan, "0.00%" ) & ")" & "</span>"
+			    )
+			VAR _Nota =
+			    IF ( ISBLANK ( _Jan ), "Sem janela anterior completa",
+			        FORMAT ( EDATE ( _Data, -23 ), "mmm/yy" ) & "–" & FORMAT ( EDATE ( _Data, -12 ), "mmm/yy" ) & ": " & FORMAT ( _Jan, "0.00%" ) )
+			RETURN
+			    IF ( ISBLANK ( _Valor ), "<div style='font-family:Segoe UI,Inter,sans-serif;color:#85838F;padding:18px;font-size:13px;'>Sem dados publicados para o período selecionado.</div>",
+			    "<div style='font-family:Segoe UI,Inter,sans-serif;height:100%;box-sizing:border-box;padding:14px 18px 12px 18px;display:flex;flex-direction:column;'>"
+			    & "<div style='display:flex;justify-content:space-between;align-items:center;gap:8px;'>"
+			        & "<div style='font-size:14.5px;font-weight:600;color:#25242B;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;'>" & "Acumulado 12 meses" & "</div>"
+			        & "<div style='font-size:11px;color:#25242B;border:1px solid #E8E8EF;border-radius:14px;padding:3px 10px;white-space:nowrap;'>" & FORMAT ( EDATE ( _Data, -11 ), "mmm/yy" ) & "–" & FORMAT ( _Data, "mmm/yy" ) & "</div>"
+			    & "</div>"
+			    & "<div style='font-size:32px;font-weight:700;color:#25242B;letter-spacing:-0.6px;margin:6px 0 5px 0;line-height:1.1;'>" & _ValorHtml & "</div>"
+			    & "<div style='white-space:nowrap;overflow:hidden;text-overflow:ellipsis;'>" & _Badge & "</div>"
+			    & "<div style='display:flex;justify-content:space-between;gap:10px;border-top:1px solid #F0EFF5;padding-top:8px;margin-top:auto;'>" & "<div style='display:flex;align-items:center;gap:7px;min-width:0;'><div style='width:24px;height:24px;min-width:24px;border-radius:50%;background:#E7E0FF;color:#8064F5;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;'>⇅</div><div style='font-size:11.5px;line-height:1.2;color:#25242B;font-weight:600;white-space:nowrap;'>" & IF ( ISBLANK ( _DMes ), "–", FORMAT ( _DMes, "+0.00;-0.00;0.00" ) & " p.p." ) & "<br><span style='font-size:10.5px;color:#85838F;font-weight:400;'>" & "vs mês anterior" & "</span></div></div>" & "<div style='display:flex;align-items:center;gap:7px;min-width:0;'><div style='width:24px;height:24px;min-width:24px;border-radius:50%;background:#E7E0FF;color:#8064F5;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;'>≈</div><div style='font-size:11.5px;line-height:1.2;color:#25242B;font-weight:600;white-space:nowrap;'>" & FORMAT ( _Media, "0.00%" ) & "<br><span style='font-size:10.5px;color:#85838F;font-weight:400;'>" & "média mensal" & "</span></div></div>" & "</div>"
+			    & "</div>"
+			    )
+		displayFolder: 09 Dashboard\05 HTML
+		lineageTag: cc0b188b-61c4-521b-98a0-346d0747a7e2
+
+	/// Card executivo: IPCA 12M vs meta do CMN (desvio em p.p., status e régua piso–meta–teto).
+	measure 'HTML KPI Meta' =
+			VAR _Data   = [_Data Referência IPCA]
+			VAR _IPCA   = [IPCA 12M %]
+			VAR _Meta   = [Meta Ano %]
+			VAR _Piso   = [Limite Inferior %]
+			VAR _Teto   = [Limite Superior %]
+			VAR _DMeta  = [Desvio vs Meta (p.p.)]
+			VAR _DTeto  = [Desvio vs Teto (p.p.)]
+			VAR _Status = [Status Meta]
+			VAR _Cons   = [Meses Consecutivos Acima do Teto]
+			VAR _Tipo   = CALCULATE ( MAX ( dMeta[TipoMeta] ), dMeta[Ano] = YEAR ( _Data ) )
+			VAR _Txt = FORMAT ( _DMeta, "+0.00;-0.00;0.00" )
+			VAR _Int = LEFT ( _Txt, LEN ( _Txt ) - 3 )
+			VAR _Dec = RIGHT ( _Txt, 3 )
+			VAR _ValorHtml = _Int & "<span style='color:#C9C7D1;'>" & _Dec & "</span><span style='font-size:15px;color:#85838F;font-weight:600;'> p.p.</span>"
+			VAR _SBg = SWITCH ( _Status, "Acima do teto", "#FCE6E6", "Abaixo do piso", "#FCE6E6", "#DDF5E5" )
+			VAR _SFg = SWITCH ( _Status, "Acima do teto", "#D14343", "Abaixo do piso", "#D14343", "#1F8F4E" )
+			VAR _STxt =
+			    SWITCH ( _Status,
+			        "Acima do teto", "↑ " & FORMAT ( _DTeto, "0.00" ) & " p.p. acima do teto",
+			        "Abaixo do piso", "↓ abaixo do piso",
+			        "Dentro do intervalo" )
+			VAR _Suf =
+			    IF ( _Status = "Acima do teto",
+			        "há " & _Cons & IF ( _Cons = 1, " mês", " meses" ),
+			        "piso–teto " & FORMAT ( _Piso, "0.0%" ) & "–" & FORMAT ( _Teto, "0.0%" ) )
+			VAR _Badge =
+			    "<span style='display:inline-block;background:" & _SBg & ";color:" & _SFg & ";padding:3px 9px;border-radius:8px;font-size:12px;font-weight:600;white-space:nowrap;'>" & _STxt & "</span>"
+			    & "<span style='font-size:11.5px;color:#85838F;margin-left:8px;'>" & _Suf & "</span>"
+			-- régua 0% → teto + 2 p.p.: faixa lilás = intervalo de tolerância; traço = meta; ponto = IPCA 12M
+			VAR _Max   = _Teto + 0.02
+			VAR _PosP  = DIVIDE ( _Piso, _Max ) * 100
+			VAR _PosT  = DIVIDE ( _Teto, _Max ) * 100
+			VAR _PosM  = DIVIDE ( _Meta, _Max ) * 100
+			VAR _PosI  = MIN ( MAX ( DIVIDE ( _IPCA, _Max ) * 100, 0 ), 100 )
+			VAR _Regua =
+			    "<div style='position:relative;height:8px;border-radius:4px;background:#F0EFF5;margin:12px 0 2px 0;'>"
+			    & "<div style='position:absolute;left:" & FORMAT ( _PosP, "0.0", "en-US" ) & "%;width:" & FORMAT ( _PosT - _PosP, "0.0", "en-US" ) & "%;top:0;bottom:0;background:#E7E0FF;border-radius:4px;'></div>"
+			    & "<div style='position:absolute;left:" & FORMAT ( _PosM, "0.0", "en-US" ) & "%;top:-2px;width:2px;height:12px;background:#B8A6FA;'></div>"
+			    & "<div style='position:absolute;left:calc(" & FORMAT ( _PosI, "0.0", "en-US" ) & "% - 7px);top:-3px;width:14px;height:14px;border-radius:50%;background:#8064F5;border:2px solid #FFFFFF;box-sizing:border-box;'></div>"
+			    & "</div>"
+			VAR _Nota =
+			    "IPCA 12M <b style='color:#25242B;'>" & FORMAT ( _IPCA, "0.00%" ) & "</b> · meta " & FORMAT ( _Meta, "0.00%" ) & " (" & LOWER ( _Tipo ) & ")"
+			RETURN
+			    IF ( ISBLANK ( _IPCA ) || ISBLANK ( _Meta ), "<div style='font-family:Segoe UI,Inter,sans-serif;color:#85838F;padding:18px;font-size:13px;'>Sem dados publicados para o período selecionado.</div>",
+			        "<div style='font-family:Segoe UI,Inter,sans-serif;height:100%;box-sizing:border-box;padding:14px 18px 12px 18px;display:flex;flex-direction:column;'>"
+			        & "<div style='display:flex;justify-content:space-between;align-items:center;'>"
+			            & "<div style='font-size:14.5px;font-weight:600;color:#25242B;white-space:nowrap;'>Distância da meta</div>"
+			            & "<div style='font-size:11px;color:#25242B;border:1px solid #E8E8EF;border-radius:14px;padding:3px 10px;white-space:nowrap;'>CMN " & YEAR ( _Data ) & "</div>"
+			        & "</div>"
+			        & "<div style='font-size:32px;font-weight:700;color:#25242B;letter-spacing:-0.6px;margin:6px 0 5px 0;line-height:1.1;'>" & _ValorHtml & "</div>"
+			        & "<div>" & _Badge & "</div>"
+			        & _Regua
+			        & "<div style='font-size:11.5px;color:#85838F;margin-top:auto;padding-top:6px;border-top:1px solid #F0EFF5;line-height:1.3;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;'>" & _Nota & "</div>"
+			        & "</div>"
+			    )
+		displayFolder: 09 Dashboard\05 HTML
+		lineageTag: c7be261f-5f28-5dab-a94f-fc647c471e7c
+
+	/// Cabeçalho da página Monitor de Inflação: título, último período econômico e data da carga (distintos).
+	measure 'HTML Cabeçalho Visão Geral' =
+			VAR _UltIPCA = CALCULATE ( [_Data Referência IPCA], REMOVEFILTERS ( dCalendario ) )
+			VAR _Carga   = MAX ( _ControleCarga[DataHoraCarga] )
+			VAR _Chip = "<span style='display:inline-flex;align-items:center;gap:6px;font-size:11.5px;color:#25242B;background:#FFFFFF;border:1px solid #E8E8EF;border-radius:14px;padding:3px 10px;margin-right:8px;white-space:nowrap;'>"
+			RETURN
+			    "<div style='font-family:Segoe UI,Inter,sans-serif;height:100%;box-sizing:border-box;overflow:hidden;display:flex;flex-direction:column;justify-content:center;'>"
+			    & "<div style='display:flex;align-items:center;gap:10px;'>"
+			        & "<div style='width:28px;height:28px;border-radius:9px;background:#8064F5;color:#FFFFFF;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:15px;'>%</div>"
+			        & "<div style='font-size:21px;font-weight:700;color:#25242B;letter-spacing:-0.3px;'>Monitor de Inflação</div>"
+			        & "<div style='font-size:13px;color:#85838F;margin-left:4px;'>Brasil · séries mensais oficiais</div>"
+			    & "</div>"
+			    & "<div style='margin-top:5px;white-space:nowrap;overflow:hidden;'>"
+			        & _Chip & "<span style='width:7px;height:7px;border-radius:50%;background:#8064F5;display:inline-block;'></span>Último período econômico: <b>" & FORMAT ( _UltIPCA, "mmm/yyyy" ) & "</b></span>"
+			        & _Chip & "<span style='width:7px;height:7px;border-radius:50%;background:#B8A6FA;display:inline-block;'></span>Base atualizada em " & FORMAT ( _Carga, "dd/mm/yyyy hh:nn" ) & "</span>"
+			        & "<span style='font-size:11px;color:#85838F;'>Fontes: BCB/SGS · IBGE/SIDRA · Focus · CMN</span>"
+			    & "</div>"
+			    & "</div>"
+		displayFolder: 09 Dashboard\05 HTML
+		lineageTag: 06a11941-d664-5b42-8f34-0028e2ddbc6d
+
+	/// Cabeçalho da página Composição do IPCA: título, último período econômico e data da carga (distintos).
+	measure 'HTML Cabeçalho Composição' =
+			VAR _UltIPCA = CALCULATE ( [_Data Referência IPCA], REMOVEFILTERS ( dCalendario ) )
+			VAR _Carga   = MAX ( _ControleCarga[DataHoraCarga] )
+			VAR _Chip = "<span style='display:inline-flex;align-items:center;gap:6px;font-size:11.5px;color:#25242B;background:#FFFFFF;border:1px solid #E8E8EF;border-radius:14px;padding:3px 10px;margin-right:8px;white-space:nowrap;'>"
+			RETURN
+			    "<div style='font-family:Segoe UI,Inter,sans-serif;height:100%;box-sizing:border-box;overflow:hidden;display:flex;flex-direction:column;justify-content:center;'>"
+			    & "<div style='display:flex;align-items:center;gap:10px;'>"
+			        & "<div style='width:28px;height:28px;border-radius:9px;background:#8064F5;color:#FFFFFF;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:15px;'>%</div>"
+			        & "<div style='font-size:21px;font-weight:700;color:#25242B;letter-spacing:-0.3px;'>Composição do IPCA</div>"
+			        & "<div style='font-size:13px;color:#85838F;margin-left:4px;'>9 grupos · variação, peso e contribuição</div>"
+			    & "</div>"
+			    & "<div style='margin-top:5px;white-space:nowrap;overflow:hidden;'>"
+			        & _Chip & "<span style='width:7px;height:7px;border-radius:50%;background:#8064F5;display:inline-block;'></span>Último período econômico: <b>" & FORMAT ( _UltIPCA, "mmm/yyyy" ) & "</b></span>"
+			        & _Chip & "<span style='width:7px;height:7px;border-radius:50%;background:#B8A6FA;display:inline-block;'></span>Base atualizada em " & FORMAT ( _Carga, "dd/mm/yyyy hh:nn" ) & "</span>"
+			        & "<span style='font-size:11px;color:#85838F;'>Fontes: BCB/SGS · IBGE/SIDRA · Focus · CMN</span>"
+			    & "</div>"
+			    & "</div>"
+		displayFolder: 09 Dashboard\05 HTML
+		lineageTag: d75c62bf-bab6-5f93-885c-c1507631d4c8
+
+	/// Cabeçalho da página Comparativos: título, último período econômico e data da carga (distintos).
+	measure 'HTML Cabeçalho Comparativos' =
+			VAR _UltIPCA = CALCULATE ( [_Data Referência IPCA], REMOVEFILTERS ( dCalendario ) )
+			VAR _Carga   = MAX ( _ControleCarga[DataHoraCarga] )
+			VAR _Chip = "<span style='display:inline-flex;align-items:center;gap:6px;font-size:11.5px;color:#25242B;background:#FFFFFF;border:1px solid #E8E8EF;border-radius:14px;padding:3px 10px;margin-right:8px;white-space:nowrap;'>"
+			RETURN
+			    "<div style='font-family:Segoe UI,Inter,sans-serif;height:100%;box-sizing:border-box;overflow:hidden;display:flex;flex-direction:column;justify-content:center;'>"
+			    & "<div style='display:flex;align-items:center;gap:10px;'>"
+			        & "<div style='width:28px;height:28px;border-radius:9px;background:#8064F5;color:#FFFFFF;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:15px;'>%</div>"
+			        & "<div style='font-size:21px;font-weight:700;color:#25242B;letter-spacing:-0.3px;'>Comparativos</div>"
+			        & "<div style='font-size:13px;color:#85838F;margin-left:4px;'>IPCA × INPC × IGP-M · livres × monitorados</div>"
+			    & "</div>"
+			    & "<div style='margin-top:5px;white-space:nowrap;overflow:hidden;'>"
+			        & _Chip & "<span style='width:7px;height:7px;border-radius:50%;background:#8064F5;display:inline-block;'></span>Último período econômico: <b>" & FORMAT ( _UltIPCA, "mmm/yyyy" ) & "</b></span>"
+			        & _Chip & "<span style='width:7px;height:7px;border-radius:50%;background:#B8A6FA;display:inline-block;'></span>Base atualizada em " & FORMAT ( _Carga, "dd/mm/yyyy hh:nn" ) & "</span>"
+			        & "<span style='font-size:11px;color:#85838F;'>Fontes: BCB/SGS · IBGE/SIDRA · Focus · CMN</span>"
+			    & "</div>"
+			    & "</div>"
+		displayFolder: 09 Dashboard\05 HTML
+		lineageTag: 0d94cb28-d008-5e9e-91af-38ac9839c961
+
+	/// Cabeçalho da página Expectativas e Juros: título, último período econômico e data da carga (distintos).
+	measure 'HTML Cabeçalho Expectativas' =
+			VAR _UltIPCA = CALCULATE ( [_Data Referência IPCA], REMOVEFILTERS ( dCalendario ) )
+			VAR _Carga   = MAX ( _ControleCarga[DataHoraCarga] )
+			VAR _Chip = "<span style='display:inline-flex;align-items:center;gap:6px;font-size:11.5px;color:#25242B;background:#FFFFFF;border:1px solid #E8E8EF;border-radius:14px;padding:3px 10px;margin-right:8px;white-space:nowrap;'>"
+			RETURN
+			    "<div style='font-family:Segoe UI,Inter,sans-serif;height:100%;box-sizing:border-box;overflow:hidden;display:flex;flex-direction:column;justify-content:center;'>"
+			    & "<div style='display:flex;align-items:center;gap:10px;'>"
+			        & "<div style='width:28px;height:28px;border-radius:9px;background:#8064F5;color:#FFFFFF;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:15px;'>%</div>"
+			        & "<div style='font-size:21px;font-weight:700;color:#25242B;letter-spacing:-0.3px;'>Expectativas e Juros</div>"
+			        & "<div style='font-size:13px;color:#85838F;margin-left:4px;'>Focus · Selic · juro real ex-post</div>"
+			    & "</div>"
+			    & "<div style='margin-top:5px;white-space:nowrap;overflow:hidden;'>"
+			        & _Chip & "<span style='width:7px;height:7px;border-radius:50%;background:#8064F5;display:inline-block;'></span>Último período econômico: <b>" & FORMAT ( _UltIPCA, "mmm/yyyy" ) & "</b></span>"
+			        & _Chip & "<span style='width:7px;height:7px;border-radius:50%;background:#B8A6FA;display:inline-block;'></span>Base atualizada em " & FORMAT ( _Carga, "dd/mm/yyyy hh:nn" ) & "</span>"
+			        & "<span style='font-size:11px;color:#85838F;'>Fontes: BCB/SGS · IBGE/SIDRA · Focus · CMN</span>"
+			    & "</div>"
+			    & "</div>"
+		displayFolder: 09 Dashboard\05 HTML
+		lineageTag: 6daf2c75-a41b-55ad-b157-4eb57c8ad205
+
+	/// Cabeçalho da página Metodologia e Qualidade: título, último período econômico e data da carga (distintos).
+	measure 'HTML Cabeçalho Metodologia' =
+			VAR _UltIPCA = CALCULATE ( [_Data Referência IPCA], REMOVEFILTERS ( dCalendario ) )
+			VAR _Carga   = MAX ( _ControleCarga[DataHoraCarga] )
+			VAR _Chip = "<span style='display:inline-flex;align-items:center;gap:6px;font-size:11.5px;color:#25242B;background:#FFFFFF;border:1px solid #E8E8EF;border-radius:14px;padding:3px 10px;margin-right:8px;white-space:nowrap;'>"
+			RETURN
+			    "<div style='font-family:Segoe UI,Inter,sans-serif;height:100%;box-sizing:border-box;overflow:hidden;display:flex;flex-direction:column;justify-content:center;'>"
+			    & "<div style='display:flex;align-items:center;gap:10px;'>"
+			        & "<div style='width:28px;height:28px;border-radius:9px;background:#8064F5;color:#FFFFFF;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:15px;'>%</div>"
+			        & "<div style='font-size:21px;font-weight:700;color:#25242B;letter-spacing:-0.3px;'>Metodologia e Qualidade</div>"
+			        & "<div style='font-size:13px;color:#85838F;margin-left:4px;'>Cargas, conferências e regras de cálculo</div>"
+			    & "</div>"
+			    & "<div style='margin-top:5px;white-space:nowrap;overflow:hidden;'>"
+			        & _Chip & "<span style='width:7px;height:7px;border-radius:50%;background:#8064F5;display:inline-block;'></span>Último período econômico: <b>" & FORMAT ( _UltIPCA, "mmm/yyyy" ) & "</b></span>"
+			        & _Chip & "<span style='width:7px;height:7px;border-radius:50%;background:#B8A6FA;display:inline-block;'></span>Base atualizada em " & FORMAT ( _Carga, "dd/mm/yyyy hh:nn" ) & "</span>"
+			        & "<span style='font-size:11px;color:#85838F;'>Fontes: BCB/SGS · IBGE/SIDRA · Focus · CMN</span>"
+			    & "</div>"
+			    & "</div>"
+		displayFolder: 09 Dashboard\05 HTML
+		lineageTag: 86f2a3ef-a73c-520c-88bf-6d294a1ce8d6
+
+	/// Texto central da rosca: IPCA do mês reconstruído pela soma das contribuições.
+	measure 'HTML Centro Rosca' =
+			VAR _Tot = [Contribuição Total (p.p.)] / 100
+			VAR _N   = [Grupos com Dado]
+			VAR _Txt = FORMAT ( _Tot * 100, "0.00" )
+			VAR _Int = LEFT ( _Txt, LEN ( _Txt ) - 3 )
+			VAR _Dec = RIGHT ( _Txt, 3 )
+			RETURN
+			    IF ( NOT ISBLANK ( _Tot ),
+			        "<div style='font-family:Segoe UI,Inter,sans-serif;text-align:center;line-height:1.15;'>"
+			        & "<div style='font-size:11.5px;color:#85838F;'>IPCA do mês</div>"
+			        & "<div style='font-size:26px;font-weight:700;color:#25242B;letter-spacing:-0.5px;'>" & _Int & "<span style='color:#C9C7D1;'>" & _Dec & "%</span></div>"
+			        & "<div style='font-size:10.5px;color:#85838F;'>Σ variação × peso</div>"
+			        & "</div>" )
+		displayFolder: 09 Dashboard\05 HTML
+		lineageTag: a52fa307-94e8-555c-b676-aab9077d6707
+
+	/// Observações calculadas (aceleração, meta, maior pressão, difusão/amplitude) com número e período.
+	measure 'HTML Insights' =
+			VAR _Nome  = [Indicador Selecionado]
+			VAR _Data  = [KPI Data Referência]
+			VAR _Mes   = [KPI Mensal %]
+			VAR _Ant   = [KPI Mensal Mês Anterior %]
+			VAR _DMes  = [KPI Δ Mensal (p.p.)]
+			VAR _DataI = [_Data Referência IPCA]
+			VAR _IPCA12 = [IPCA 12M %]
+			VAR _Meta  = [Meta Ano %]
+			VAR _Piso  = [Limite Inferior %]
+			VAR _Teto  = [Limite Superior %]
+			VAR _DTeto = [Desvio vs Teto (p.p.)]
+			VAR _DMeta = [Desvio vs Meta (p.p.)]
+			VAR _Cons  = [Meses Consecutivos Acima do Teto]
+			VAR _DataG = CALCULATE ( [_Data Referência Grupos], REMOVEFILTERS ( dGrupoIPCA ) )
+			VAR _GP    = [Grupo de Maior Pressão]
+			VAR _GPc   = [Contribuição do Grupo de Maior Pressão (p.p.)]
+			VAR _GPv   = [Variação do Grupo de Maior Pressão %]
+			VAR _GPp   = [Peso do Grupo de Maior Pressão %]
+			VAR _Tot   = [Contribuição Total (p.p.)]
+			VAR _GA    = [Grupo de Maior Alívio]
+			VAR _GAc   = [Contribuição do Grupo de Maior Alívio (p.p.)]
+			VAR _Alta  = [Grupos em Alta]
+			VAR _NG    = [Grupos com Dado]
+			VAR _Amp   = [Amplitude entre Grupos (p.p.)]
+			VAR _GMax  = [Grupo de Maior Alta]
+			VAR _VMax  = [Variação do Grupo de Maior Alta %]
+			VAR _GMin  = [Grupo de Maior Queda]
+			VAR _VMin  = [Variação do Grupo de Maior Queda %]
+			VAR _PP = "+0.00;-0.00;0.00"
+			VAR _Tag = "<span style='font-size:10.5px;color:#8064F5;background:#E7E0FF;border-radius:6px;padding:1px 6px;margin-left:6px;white-space:nowrap;'>"
+			VAR _Li  = "<div style='display:flex;gap:9px;margin-bottom:6px;'><div style='width:6px;height:6px;min-width:6px;border-radius:50%;background:#8064F5;margin-top:6px;'></div><div>"
+			VAR _I1 =
+			    IF ( NOT ISBLANK ( _DMes ),
+			        _Li & "<b>" & _Nome & "</b> "
+			        & SWITCH ( TRUE (), _DMes > 0, "acelerou", _DMes < 0, "desacelerou", "ficou estável" )
+			        & " de " & FORMAT ( _Ant, "0.00%" ) & " para <b>" & FORMAT ( _Mes, "0.00%" ) & "</b> ("
+			        & FORMAT ( _DMes, _PP ) & " p.p.)" & _Tag & FORMAT ( EDATE ( _Data, -1 ), "mmm/yy" ) & " → " & FORMAT ( _Data, "mmm/yy" ) & "</span></div></div>" )
+			VAR _I2 =
+			    IF ( NOT ISBLANK ( _IPCA12 ) && NOT ISBLANK ( _Teto ),
+			        _Li & "IPCA em 12 meses: <b>" & FORMAT ( _IPCA12, "0.00%" ) & "</b>, "
+			        & SWITCH ( TRUE (),
+			            _IPCA12 > _Teto, "<b style='color:#D14343;'>" & FORMAT ( _DTeto, "0.00" ) & " p.p. acima do teto</b> de " & FORMAT ( _Teto, "0.00%" )
+			                & IF ( _Cons > 1, " há " & _Cons & " meses seguidos", "" ),
+			            _IPCA12 < _Piso, "<b style='color:#D14343;'>abaixo do piso</b> de " & FORMAT ( _Piso, "0.00%" ),
+			            "<b style='color:#1F8F4E;'>dentro do intervalo</b>, " & FORMAT ( _DMeta, _PP ) & " p.p. vs meta de " & FORMAT ( _Meta, "0.00%" ) )
+			        & _Tag & FORMAT ( _DataI, "mmm/yy" ) & "</span></div></div>" )
+			VAR _I3 =
+			    IF ( NOT ISBLANK ( _GP ),
+			        _Li & "<b>" & _GP & "</b> foi a maior pressão: " & FORMAT ( _GPc, _PP ) & " p.p. dos "
+			        & FORMAT ( _Tot, "0.00" ) & " p.p. do IPCA (variação " & FORMAT ( _GPv, "0.00%" ) & ", peso " & FORMAT ( _GPp, "0.0%" ) & ")"
+			        & IF ( _GAc < 0, "; maior alívio: " & _GA & " (" & FORMAT ( _GAc, _PP ) & " p.p.)", "" )
+			        & _Tag & FORMAT ( _DataG, "mmm/yy" ) & "</span></div></div>" )
+			VAR _I4 =
+			    IF ( _NG > 0,
+			        _Li & "<b>" & _Alta & " de " & _NG & "</b> grupos subiram no mês; amplitude de " & FORMAT ( _Amp, "0.00" )
+			        & " p.p. entre " & _GMax & " (" & FORMAT ( _VMax, "0.00%" ) & ") e " & _GMin & " (" & FORMAT ( _VMin, "0.00%" ) & ")"
+			        & _Tag & FORMAT ( _DataG, "mmm/yy" ) & "</span></div></div>" )
+			RETURN
+			    "<div style='font-family:Segoe UI,Inter,sans-serif;height:100%;box-sizing:border-box;padding:12px 18px;color:#25242B;font-size:11.5px;line-height:1.38;'>"
+			    & "<div style='display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;'>"
+			        & "<div style='font-size:15px;font-weight:600;'>Insights do período</div>"
+			        & "<div style='font-size:10.5px;color:#85838F;'>calculados a partir dos dados · sem inferência causal</div>"
+			    & "</div>"
+			    & _I1 & _I2 & _I3 & _I4
+			    & "</div>"
+		displayFolder: 09 Dashboard\05 HTML
+		lineageTag: 8b4f8a1d-50fa-5370-bc4e-30b95ec2a8ab
+
+	/// Mini card: IPCA reconstruído pelos grupos.
+	measure 'HTML Mini Contribuição Total' =
+			VAR _V = [Contribuição Total (p.p.)] / 100
+			VAR _Txt = FORMAT ( _V * 100, "0.00" )
+			VAR _Int = LEFT ( _Txt, LEN ( _Txt ) - 3 )
+			VAR _Dec = RIGHT ( _Txt, 3 )
+			VAR _VH = _Int & "<span style='color:#C9C7D1;'>" & _Dec & "%</span>"
+			RETURN
+			    IF ( ISBLANK ( _V ), "<div style='font-family:Segoe UI,Inter,sans-serif;color:#85838F;padding:18px;font-size:13px;'>Sem dados publicados para o período selecionado.</div>",
+			        "<div style='font-family:Segoe UI,Inter,sans-serif;height:100%;box-sizing:border-box;padding:12px 16px;display:flex;flex-direction:column;justify-content:space-between;'>"
+			        & "<div style='font-size:12.5px;font-weight:600;color:#85838F;'>IPCA do mês (Σ grupos)</div>"
+			        & "<div style='font-size:24px;font-weight:700;color:#25242B;letter-spacing:-0.4px;line-height:1.15;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;'>" & _VH & "</div>"
+			        & "<div style='font-size:11px;color:#85838F;line-height:1.3;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;'>" & "Soma de variação × peso · " & FORMAT ( CALCULATE ( [_Data Referência Grupos], REMOVEFILTERS ( dGrupoIPCA ) ), "mmm/yyyy" ) & "</div>"
+			        & "</div>" )
+		displayFolder: 09 Dashboard\05 HTML
+		lineageTag: 22dff427-6bd2-5cd8-823d-4ad29a0e38fb
+
+	/// Mini card: grupo de maior contribuição ponderada.
+	measure 'HTML Mini Maior Pressão' =
+			VAR _V = [Grupo de Maior Pressão]
+			VAR _VH = _V
+			RETURN
+			    IF ( ISBLANK ( _V ), "<div style='font-family:Segoe UI,Inter,sans-serif;color:#85838F;padding:18px;font-size:13px;'>Sem dados publicados para o período selecionado.</div>",
+			        "<div style='font-family:Segoe UI,Inter,sans-serif;height:100%;box-sizing:border-box;padding:12px 16px;display:flex;flex-direction:column;justify-content:space-between;'>"
+			        & "<div style='font-size:12.5px;font-weight:600;color:#85838F;'>Maior pressão (contribuição)</div>"
+			        & "<div style='font-size:19px;font-weight:700;color:#25242B;letter-spacing:-0.4px;line-height:1.15;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;'>" & _VH & "</div>"
+			        & "<div style='font-size:11px;color:#85838F;line-height:1.3;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;'>" & FORMAT ( [Contribuição do Grupo de Maior Pressão (p.p.)], "+0.00;-0.00" ) & " p.p. · variação " & FORMAT ( [Variação do Grupo de Maior Pressão %], "0.00%" ) & "</div>"
+			        & "</div>" )
+		displayFolder: 09 Dashboard\05 HTML
+		lineageTag: f41e2f4d-f2e6-50f5-a75c-1ec28efc23c0
+
+	/// Mini card: grupo de maior variação percentual (≠ maior contribuição).
+	measure 'HTML Mini Maior Alta' =
+			VAR _V = [Grupo de Maior Alta]
+			VAR _VH = _V
+			RETURN
+			    IF ( ISBLANK ( _V ), "<div style='font-family:Segoe UI,Inter,sans-serif;color:#85838F;padding:18px;font-size:13px;'>Sem dados publicados para o período selecionado.</div>",
+			        "<div style='font-family:Segoe UI,Inter,sans-serif;height:100%;box-sizing:border-box;padding:12px 16px;display:flex;flex-direction:column;justify-content:space-between;'>"
+			        & "<div style='font-size:12.5px;font-weight:600;color:#85838F;'>Maior variação no mês</div>"
+			        & "<div style='font-size:19px;font-weight:700;color:#25242B;letter-spacing:-0.4px;line-height:1.15;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;'>" & _VH & "</div>"
+			        & "<div style='font-size:11px;color:#85838F;line-height:1.3;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;'>" & FORMAT ( [Variação do Grupo de Maior Alta %], "0.00%" ) & " · maior queda: " & [Grupo de Maior Queda] & " " & FORMAT ( [Variação do Grupo de Maior Queda %], "0.00%" ) & "</div>"
+			        & "</div>" )
+		displayFolder: 09 Dashboard\05 HTML
+		lineageTag: 4e578e45-e020-5b63-9fdb-9993eaf38825
+
+	/// Mini card: % de grupos com variação positiva.
+	measure 'HTML Mini Difusão' =
+			VAR _V = [Difusão de Alta %]
+			VAR _Txt = FORMAT ( _V * 100, "0.00" )
+			VAR _Int = LEFT ( _Txt, LEN ( _Txt ) - 3 )
+			VAR _Dec = RIGHT ( _Txt, 3 )
+			VAR _VH = _Int & "<span style='color:#C9C7D1;'>" & _Dec & "%</span>"
+			RETURN
+			    IF ( ISBLANK ( _V ), "<div style='font-family:Segoe UI,Inter,sans-serif;color:#85838F;padding:18px;font-size:13px;'>Sem dados publicados para o período selecionado.</div>",
+			        "<div style='font-family:Segoe UI,Inter,sans-serif;height:100%;box-sizing:border-box;padding:12px 16px;display:flex;flex-direction:column;justify-content:space-between;'>"
+			        & "<div style='font-size:12.5px;font-weight:600;color:#85838F;'>Difusão entre grupos</div>"
+			        & "<div style='font-size:24px;font-weight:700;color:#25242B;letter-spacing:-0.4px;line-height:1.15;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;'>" & _VH & "</div>"
+			        & "<div style='font-size:11px;color:#85838F;line-height:1.3;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;'>" & [Grupos em Alta] & " de " & [Grupos com Dado] & " grupos em alta · amplitude " & FORMAT ( [Amplitude entre Grupos (p.p.)], "0.00" ) & " p.p." & "</div>"
+			        & "</div>" )
+		displayFolder: 09 Dashboard\05 HTML
+		lineageTag: f9700d65-1777-5e43-84f6-c1fb5344dfa4
+
+	/// Mini card IPCA 12M.
+	measure 'HTML Mini IPCA 12M' =
+			VAR _V = [IPCA 12M %]
+			VAR _Txt = FORMAT ( _V * 100, "0.00" )
+			VAR _Int = LEFT ( _Txt, LEN ( _Txt ) - 3 )
+			VAR _Dec = RIGHT ( _Txt, 3 )
+			VAR _VH = _Int & "<span style='color:#C9C7D1;'>" & _Dec & "%</span>"
+			RETURN
+			    IF ( ISBLANK ( _V ), "<div style='font-family:Segoe UI,Inter,sans-serif;color:#85838F;padding:18px;font-size:13px;'>Sem dados publicados para o período selecionado.</div>",
+			        "<div style='font-family:Segoe UI,Inter,sans-serif;height:100%;box-sizing:border-box;padding:12px 16px;display:flex;flex-direction:column;justify-content:space-between;'>"
+			        & "<div style='font-size:12.5px;font-weight:600;color:#85838F;'>IPCA · 12 meses</div>"
+			        & "<div style='font-size:24px;font-weight:700;color:#25242B;letter-spacing:-0.4px;line-height:1.15;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;'>" & _VH & "</div>"
+			        & "<div style='font-size:11px;color:#85838F;line-height:1.3;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;'>" & "Acum. ano " & FORMAT ( [IPCA Acum. Ano %], "0.00%" ) & " · " & FORMAT ( [_Data Referência IPCA], "mmm/yyyy" ) & "</div>"
+			        & "</div>" )
+		displayFolder: 09 Dashboard\05 HTML
+		lineageTag: b3e137e6-ea2f-58fc-9c12-7f0c1ce23371
+
+	/// Mini card INPC 12M.
+	measure 'HTML Mini INPC 12M' =
+			VAR _V = [INPC 12M %]
+			VAR _Txt = FORMAT ( _V * 100, "0.00" )
+			VAR _Int = LEFT ( _Txt, LEN ( _Txt ) - 3 )
+			VAR _Dec = RIGHT ( _Txt, 3 )
+			VAR _VH = _Int & "<span style='color:#C9C7D1;'>" & _Dec & "%</span>"
+			RETURN
+			    IF ( ISBLANK ( _V ), "<div style='font-family:Segoe UI,Inter,sans-serif;color:#85838F;padding:18px;font-size:13px;'>Sem dados publicados para o período selecionado.</div>",
+			        "<div style='font-family:Segoe UI,Inter,sans-serif;height:100%;box-sizing:border-box;padding:12px 16px;display:flex;flex-direction:column;justify-content:space-between;'>"
+			        & "<div style='font-size:12.5px;font-weight:600;color:#85838F;'>INPC · 12 meses</div>"
+			        & "<div style='font-size:24px;font-weight:700;color:#25242B;letter-spacing:-0.4px;line-height:1.15;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;'>" & _VH & "</div>"
+			        & "<div style='font-size:11px;color:#85838F;line-height:1.3;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;'>" & "Acum. ano " & FORMAT ( [INPC Acum. Ano %], "0.00%" ) & " · spread IPCA " & FORMAT ( [Spread IPCA − INPC (p.p.)], "+0.00;-0.00;0.00" ) & " p.p." & "</div>"
+			        & "</div>" )
+		displayFolder: 09 Dashboard\05 HTML
+		lineageTag: df507e22-1ffe-5f3f-bc4c-0edc6a0ee064
+
+	/// Mini card IGP-M 12M.
+	measure 'HTML Mini IGP-M 12M' =
+			VAR _V = [IGP-M 12M %]
+			VAR _Txt = FORMAT ( _V * 100, "0.00" )
+			VAR _Int = LEFT ( _Txt, LEN ( _Txt ) - 3 )
+			VAR _Dec = RIGHT ( _Txt, 3 )
+			VAR _VH = _Int & "<span style='color:#C9C7D1;'>" & _Dec & "%</span>"
+			RETURN
+			    IF ( ISBLANK ( _V ), "<div style='font-family:Segoe UI,Inter,sans-serif;color:#85838F;padding:18px;font-size:13px;'>Sem dados publicados para o período selecionado.</div>",
+			        "<div style='font-family:Segoe UI,Inter,sans-serif;height:100%;box-sizing:border-box;padding:12px 16px;display:flex;flex-direction:column;justify-content:space-between;'>"
+			        & "<div style='font-size:12.5px;font-weight:600;color:#85838F;'>IGP-M · 12 meses</div>"
+			        & "<div style='font-size:24px;font-weight:700;color:#25242B;letter-spacing:-0.4px;line-height:1.15;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;'>" & _VH & "</div>"
+			        & "<div style='font-size:11px;color:#85838F;line-height:1.3;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;'>" & "Acum. ano " & FORMAT ( [IGP-M Acum. Ano %], "0.00%" ) & " · spread IPCA " & FORMAT ( [Spread IPCA − IGP-M (p.p.)], "+0.00;-0.00;0.00" ) & " p.p." & "</div>"
+			        & "</div>" )
+		displayFolder: 09 Dashboard\05 HTML
+		lineageTag: 7f744e61-9b33-54ba-b37b-1a270289e1a6
+
+	/// Mini card: diferença livres × monitorados em 12M.
+	measure 'HTML Mini Livres x Monitorados' =
+			VAR _V = ( [IPCA Livres 12M %] - [IPCA Monitorados 12M %] ) * 100
+			VAR _Txt = FORMAT ( _V, "+0.00;-0.00;0.00" )
+			VAR _Int = LEFT ( _Txt, LEN ( _Txt ) - 3 )
+			VAR _Dec = RIGHT ( _Txt, 3 )
+			VAR _VH = _Int & "<span style='color:#C9C7D1;'>" & _Dec & "</span><span style='font-size:13px;color:#85838F;'> p.p.</span>"
+			RETURN
+			    IF ( ISBLANK ( _V ), "<div style='font-family:Segoe UI,Inter,sans-serif;color:#85838F;padding:18px;font-size:13px;'>Sem dados publicados para o período selecionado.</div>",
+			        "<div style='font-family:Segoe UI,Inter,sans-serif;height:100%;box-sizing:border-box;padding:12px 16px;display:flex;flex-direction:column;justify-content:space-between;'>"
+			        & "<div style='font-size:12.5px;font-weight:600;color:#85838F;'>Livres − Monitorados (12M)</div>"
+			        & "<div style='font-size:24px;font-weight:700;color:#25242B;letter-spacing:-0.4px;line-height:1.15;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;'>" & _VH & "</div>"
+			        & "<div style='font-size:11px;color:#85838F;line-height:1.3;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;'>" & "Livres " & FORMAT ( [IPCA Livres 12M %], "0.00%" ) & " · Monitorados " & FORMAT ( [IPCA Monitorados 12M %], "0.00%" ) & "</div>"
+			        & "</div>" )
+		displayFolder: 09 Dashboard\05 HTML
+		lineageTag: e147756e-ed69-57c3-adce-bda436d640f5
+
+	/// Mini card Focus ano corrente.
+	measure 'HTML Mini Focus Ano' =
+			VAR _V = [Focus Mediana Ano Corrente]
+			VAR _Txt = FORMAT ( _V * 100, "0.00" )
+			VAR _Int = LEFT ( _Txt, LEN ( _Txt ) - 3 )
+			VAR _Dec = RIGHT ( _Txt, 3 )
+			VAR _VH = _Int & "<span style='color:#C9C7D1;'>" & _Dec & "%</span>"
+			RETURN
+			    IF ( ISBLANK ( _V ), "<div style='font-family:Segoe UI,Inter,sans-serif;color:#85838F;padding:18px;font-size:13px;'>Sem dados publicados para o período selecionado.</div>",
+			        "<div style='font-family:Segoe UI,Inter,sans-serif;height:100%;box-sizing:border-box;padding:12px 16px;display:flex;flex-direction:column;justify-content:space-between;'>"
+			        & "<div style='font-size:12.5px;font-weight:600;color:#85838F;'>Focus · IPCA ano corrente</div>"
+			        & "<div style='font-size:24px;font-weight:700;color:#25242B;letter-spacing:-0.4px;line-height:1.15;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;'>" & _VH & "</div>"
+			        & "<div style='font-size:11px;color:#85838F;line-height:1.3;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;'>" & "Coleta " & FORMAT ( [_Data Referência Focus], "mmm/yyyy" ) & " · no início do ano " & FORMAT ( [Focus Mediana Início do Ano], "0.00%" ) & "</div>"
+			        & "</div>" )
+		displayFolder: 09 Dashboard\05 HTML
+		lineageTag: 9d4ef055-0840-52eb-988b-d7143ed4ffd6
+
+	/// Mini card Focus próximo ano.
+	measure 'HTML Mini Focus Próximo' =
+			VAR _V = [Focus Mediana Próximo Ano]
+			VAR _Txt = FORMAT ( _V * 100, "0.00" )
+			VAR _Int = LEFT ( _Txt, LEN ( _Txt ) - 3 )
+			VAR _Dec = RIGHT ( _Txt, 3 )
+			VAR _VH = _Int & "<span style='color:#C9C7D1;'>" & _Dec & "%</span>"
+			RETURN
+			    IF ( ISBLANK ( _V ), "<div style='font-family:Segoe UI,Inter,sans-serif;color:#85838F;padding:18px;font-size:13px;'>Sem dados publicados para o período selecionado.</div>",
+			        "<div style='font-family:Segoe UI,Inter,sans-serif;height:100%;box-sizing:border-box;padding:12px 16px;display:flex;flex-direction:column;justify-content:space-between;'>"
+			        & "<div style='font-size:12.5px;font-weight:600;color:#85838F;'>Focus · IPCA próximo ano</div>"
+			        & "<div style='font-size:24px;font-weight:700;color:#25242B;letter-spacing:-0.4px;line-height:1.15;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;'>" & _VH & "</div>"
+			        & "<div style='font-size:11px;color:#85838F;line-height:1.3;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;'>" & "Mediana · coleta " & FORMAT ( [_Data Referência Focus], "mmm/yyyy" ) & "</div>"
+			        & "</div>" )
+		displayFolder: 09 Dashboard\05 HTML
+		lineageTag: b18e3468-dcfd-5325-8f37-c3d67cecefaa
+
+	/// Mini card Selic.
+	measure 'HTML Mini Selic' =
+			VAR _V = [Selic % a.a.]
+			VAR _Txt = FORMAT ( _V * 100, "0.00" )
+			VAR _Int = LEFT ( _Txt, LEN ( _Txt ) - 3 )
+			VAR _Dec = RIGHT ( _Txt, 3 )
+			VAR _VH = _Int & "<span style='color:#C9C7D1;'>" & _Dec & "%</span>"
+			RETURN
+			    IF ( ISBLANK ( _V ), "<div style='font-family:Segoe UI,Inter,sans-serif;color:#85838F;padding:18px;font-size:13px;'>Sem dados publicados para o período selecionado.</div>",
+			        "<div style='font-family:Segoe UI,Inter,sans-serif;height:100%;box-sizing:border-box;padding:12px 16px;display:flex;flex-direction:column;justify-content:space-between;'>"
+			        & "<div style='font-size:12.5px;font-weight:600;color:#85838F;'>Selic (% a.a.)</div>"
+			        & "<div style='font-size:24px;font-weight:700;color:#25242B;letter-spacing:-0.4px;line-height:1.15;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;'>" & _VH & "</div>"
+			        & "<div style='font-size:11px;color:#85838F;line-height:1.3;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;'>" & "Série 4189 · Selic 12M " & FORMAT ( [Selic 12M %], "0.00%" ) & "</div>"
+			        & "</div>" )
+		displayFolder: 09 Dashboard\05 HTML
+		lineageTag: d3a23920-f0bf-5c63-96a5-fff656d8b10b
+
+	/// Mini card juro real ex-post.
+	measure 'HTML Mini Juro Real' =
+			VAR _V = [Juro Real Ex-Post %]
+			VAR _Txt = FORMAT ( _V * 100, "0.00" )
+			VAR _Int = LEFT ( _Txt, LEN ( _Txt ) - 3 )
+			VAR _Dec = RIGHT ( _Txt, 3 )
+			VAR _VH = _Int & "<span style='color:#C9C7D1;'>" & _Dec & "%</span>"
+			RETURN
+			    IF ( ISBLANK ( _V ), "<div style='font-family:Segoe UI,Inter,sans-serif;color:#85838F;padding:18px;font-size:13px;'>Sem dados publicados para o período selecionado.</div>",
+			        "<div style='font-family:Segoe UI,Inter,sans-serif;height:100%;box-sizing:border-box;padding:12px 16px;display:flex;flex-direction:column;justify-content:space-between;'>"
+			        & "<div style='font-size:12.5px;font-weight:600;color:#85838F;'>Juro real ex-post (12M)</div>"
+			        & "<div style='font-size:24px;font-weight:700;color:#25242B;letter-spacing:-0.4px;line-height:1.15;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;'>" & _VH & "</div>"
+			        & "<div style='font-size:11px;color:#85838F;line-height:1.3;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;'>" & "(1+Selic 12M)/(1+IPCA 12M)−1 · " & FORMAT ( [_Data Referência IPCA], "mmm/yyyy" ) & "</div>"
+			        & "</div>" )
+		displayFolder: 09 Dashboard\05 HTML
+		lineageTag: 71195db0-0d22-5ec6-ae24-8c78e45b5730
+
+	/// Mini card: resultado da conferência do 12M.
+	measure 'HTML Mini Checagem' =
+			VAR _V = IF ( NOT ISBLANK ( [IPCA 12M %] ), [Checagem Meses Divergentes] & " mês(es) divergente(s)" )
+			VAR _VH = _V
+			RETURN
+			    IF ( ISBLANK ( _V ), "<div style='font-family:Segoe UI,Inter,sans-serif;color:#85838F;padding:18px;font-size:13px;'>Sem dados publicados para o período selecionado.</div>",
+			        "<div style='font-family:Segoe UI,Inter,sans-serif;height:100%;box-sizing:border-box;padding:12px 16px;display:flex;flex-direction:column;justify-content:space-between;'>"
+			        & "<div style='font-size:12.5px;font-weight:600;color:#85838F;'>Conferência IPCA 12M × SGS 13522</div>"
+			        & "<div style='font-size:19px;font-weight:700;color:#25242B;letter-spacing:-0.4px;line-height:1.15;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;'>" & _VH & "</div>"
+			        & "<div style='font-size:11px;color:#85838F;line-height:1.3;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;'>" & "Tolerância 0,01 p.p. · último mês " & FORMAT ( [Checagem IPCA 12M (p.p.)], "+0.00;-0.00;0.00" ) & " p.p." & "</div>"
+			        & "</div>" )
+		displayFolder: 09 Dashboard\05 HTML
+		lineageTag: a2887efc-5872-570c-b902-dc848845df0f
+
+	/// Legenda da rosca (2 colunas, ordenada por peso) com as mesmas cores fixas por grupo.
+	measure 'HTML Legenda Pesos' =
+			VAR _T =
+			    FILTER (
+			        ADDCOLUMNS (
+			            ALL ( dGrupoIPCA ),
+			            "@p", [Peso Grupo %],
+			            "@cor", SWITCH ( dGrupoIPCA[Grupo], "Alimentação e bebidas", "#8064F5", "Habitação", "#5B45D6", "Transportes", "#B8A6FA", "Saúde e cuidados pessoais", "#3A3946", "Despesas pessoais", "#9D8CF7", "Educação", "#D9D0FD", "Vestuário", "#85838F", "Comunicação", "#C9C7D1", "Artigos de residência", "#6E6C78", "#C9C7D1" ),
+			            "@nome", SWITCH ( dGrupoIPCA[Grupo], "Alimentação e bebidas", "Alimentação", "Habitação", "Habitação", "Transportes", "Transportes", "Saúde e cuidados pessoais", "Saúde", "Despesas pessoais", "Desp. pessoais", "Educação", "Educação", "Vestuário", "Vestuário", "Comunicação", "Comunicação", "Artigos de residência", "Art. residência", dGrupoIPCA[Grupo] )
+			        ),
+			        NOT ISBLANK ( [@p] )
+			    )
+			RETURN
+			    IF ( NOT ISEMPTY ( _T ),
+			        "<div style='font-family:Segoe UI,Inter,sans-serif;display:grid;grid-template-columns:1fr 1fr;gap:7px 14px;padding:2px 16px;font-size:11px;color:#25242B;'>"
+			        & CONCATENATEX (
+			            _T,
+			            "<div style='display:flex;align-items:center;gap:6px;min-width:0;' title='" & dGrupoIPCA[Grupo] & "'>"
+			                & "<span style='width:9px;height:9px;min-width:9px;border-radius:50%;background:" & [@cor] & ";'></span>"
+			                & "<span style='white-space:nowrap;overflow:hidden;text-overflow:ellipsis;'>" & [@nome] & "</span>"
+			                & "<span style='margin-left:auto;color:#85838F;'>" & FORMAT ( [@p], "0.0%" ) & "</span></div>",
+			            "",
+			            [@p], DESC
+			        )
+			        & "</div>" )
+		displayFolder: 09 Dashboard\05 HTML
+		lineageTag: bd593d62-8196-54e6-8dad-2d1ab38ac29b
+
+	/// Coluna técnica (vazia) — oculta para a tabela virar 'tabela de medidas'.
+	column Medidas
+		dataType: string
+		isHidden
+		lineageTag: 2cb4469c-c0e0-562d-93b2-d05e8558e902
+		summarizeBy: none
+		sourceColumn: Medidas
+
+		annotation SummarizationSetBy = Automatic
+
+	partition _Medidas = m
+		mode: import
+		source =
+				let
+				    // Tabela vazia: existe só para hospedar as medidas (coluna oculta)
+				    Fonte = #table ( type table [ Medidas = text ], {} )
+				in
+				    Fonte
+
+	annotation PBI_ResultType = Table
+

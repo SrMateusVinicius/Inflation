@@ -1,0 +1,11 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/gitIntegration/platformProperties/2.0.0/schema.json",
+  "metadata": {
+    "type": "Report",
+    "displayName": "MonitorInflacao"
+  },
+  "config": {
+    "version": "2.0",
+    "logicalId": "7ab286e4-02d8-4a8b-ae31-690dfb12bed7"
+  }
+}

@@ -1,0 +1,71 @@
+/// Fato mensal do IPCA por grupo (SIDRA 1419/7060): variação mensal e peso, em fração.
+table fIPCAGrupos
+	lineageTag: db0ab1c9-32e3-5509-bfaa-107de552e89c
+
+	/// Mês (aaaammdd) → dCalendario.
+	column DataKey
+		dataType: int64
+		isHidden
+		formatString: 0
+		lineageTag: cfefab15-c7fd-5006-a549-3a821a285ba8
+		summarizeBy: none
+		sourceColumn: DataKey
+
+		annotation SummarizationSetBy = User
+
+	/// Grupo → dGrupoIPCA.
+	column CodigoGrupo
+		dataType: int64
+		isHidden
+		formatString: 0
+		lineageTag: d777f5f7-f6d6-5759-8440-376998218260
+		summarizeBy: none
+		sourceColumn: CodigoGrupo
+
+		annotation SummarizationSetBy = User
+
+	/// Variação mensal do grupo (fração).
+	column VariacaoMensal
+		dataType: double
+		isHidden
+		formatString: 0.00%
+		lineageTag: 3929b62c-61f8-5764-bc5e-8fe9e2ac71fc
+		summarizeBy: none
+		sourceColumn: VariacaoMensal
+
+		annotation SummarizationSetBy = User
+
+	/// Peso do grupo no IPCA do mês (fração; soma ≈ 1).
+	column Peso
+		dataType: double
+		isHidden
+		formatString: 0.00%
+		lineageTag: 6f99b7ff-c5ab-582b-903e-d50aef7c6928
+		summarizeBy: none
+		sourceColumn: Peso
+
+		annotation SummarizationSetBy = User
+
+	partition fIPCAGrupos = m
+		mode: import
+		source =
+				let
+				    // Leitura do Parquet tipado da camada silver (GitHub raw; URL base fixa + RelativePath, refresh no Service sem gateway)
+				    Fonte = Parquet.Document ( Binary.Buffer ( Web.Contents ( "https://raw.githubusercontent.com", [ RelativePath = pRepositorio & "/dados/silver/fIPCAGrupos.parquet" ] ) ) ),
+				    // Mantém só as colunas do modelo (protege contra colunas novas no arquivo)
+				    Colunas = Table.SelectColumns ( Fonte, { "DataKey", "CodigoGrupo", "VariacaoMensal", "Peso" } ),
+				    // Reafirma os tipos (nenhuma coluna 'any')
+				    Tipos = Table.TransformColumnTypes (
+				        Colunas,
+				        {
+				            { "DataKey", Int64.Type },
+				            { "CodigoGrupo", Int64.Type },
+				            { "VariacaoMensal", type number },
+				            { "Peso", type number }
+				        }
+				    )
+				in
+				    Tipos
+
+	annotation PBI_ResultType = Table
+

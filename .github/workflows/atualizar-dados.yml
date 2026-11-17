@@ -1,0 +1,79 @@
+# Atualiza a camada silver (dados/silver/*.parquet) com as séries mais recentes do BCB e do IBGE.
+# Roda todo mês no dia 12 (o IPCA costuma sair por volta do dia 10) e pode ser disparado à mão.
+# APIs públicas, sem credencial: nenhum secret é necessário.
+
+name: Atualizar dados de inflação
+
+on:
+  schedule:
+    - cron: "0 11 12 * *"      # dia 12 de cada mês, 11:00 UTC (08:00 em Brasília)
+  workflow_dispatch:
+    inputs:
+      inicio:
+        description: "Mês inicial a reprocessar (aaaa-mm). Vazio = últimos 12 meses."
+        required: false
+        default: ""
+
+permissions:
+  contents: write              # necessário apenas para o commit dos Parquets
+
+concurrency:
+  group: atualizar-dados
+  cancel-in-progress: false
+
+jobs:
+  atualizar:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: extracao/requirements.txt
+
+      - name: Instalar dependências
+        run: pip install -r extracao/requirements.txt
+
+      - name: Definir período
+        id: periodo
+        run: |
+          if [ -n "${{ github.event.inputs.inicio }}" ]; then
+            echo "inicio=${{ github.event.inputs.inicio }}" >> "$GITHUB_OUTPUT"
+          else
+            # reprocessa 12 meses: captura revisões das fontes; o upsert não duplica linhas
+            echo "inicio=$(date -u -d '-12 months' +%Y-%m)" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Extrair, validar e gravar a camada silver
+        env:
+          INFLACAO_RAIZ: ${{ github.workspace }}
+        # Em qualquer falha (API fora do ar ou validação), o script sai com erro e não grava nada:
+        # os Parquets anteriores continuam valendo e o GitHub avisa por e-mail.
+        run: python extracao/main.py --inicio "${{ steps.periodo.outputs.inicio }}" --fim atual
+
+      - name: Guardar logs da execução
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: logs-${{ github.run_id }}
+          path: logs/
+          retention-days: 30
+          if-no-files-found: ignore
+
+      - name: Commit dos Parquets atualizados
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add dados/silver/*.parquet
+          if git diff --cached --quiet; then
+            echo "Nenhuma mudança nos dados."
+          else
+            git commit -m "dados: atualização automática $(date -u +%Y-%m-%d)"
+            git push
+          fi

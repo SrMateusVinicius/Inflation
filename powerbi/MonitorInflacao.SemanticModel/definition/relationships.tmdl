@@ -1,0 +1,20 @@
+relationship 75c556b2-fa98-53cd-8b6b-ba15dc5c08ab
+	fromColumn: fIndicadores.DataKey
+	toColumn: dCalendario.DataKey
+
+relationship 7c17f4ec-cdbd-5ef2-ae00-aedb10f1eaa1
+	fromColumn: fIndicadores.CodigoSGS
+	toColumn: dIndicador.CodigoSGS
+
+relationship d1a2a686-b187-5412-9bf1-8edd1f5463c2
+	fromColumn: fIPCAGrupos.DataKey
+	toColumn: dCalendario.DataKey
+
+relationship 8cafd8f5-3909-5201-ab36-01549b1432d0
+	fromColumn: fIPCAGrupos.CodigoGrupo
+	toColumn: dGrupoIPCA.CodigoGrupo
+
+relationship 0c98f40b-f513-5119-ad53-290a38cdb923
+	fromColumn: fExpectativas.DataColetaKey
+	toColumn: dCalendario.DataKey
+

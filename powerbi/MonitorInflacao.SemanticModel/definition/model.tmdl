@@ -1,0 +1,27 @@
+model Model
+	culture: pt-BR
+	defaultPowerBIDataSourceVersion: powerBI_V3
+	discourageImplicitMeasures
+	sourceQueryCulture: pt-BR
+	dataAccessOptions
+		legacyRedirects
+		returnErrorValuesAsNull
+
+annotation __PBI_TimeIntelligenceEnabled = 0
+
+annotation PBI_QueryOrder = ["pRepositorio", "dCalendario", "dIndicador", "dGrupoIPCA", "dMeta", "fIndicadores", "fIPCAGrupos", "fExpectativas", "_ControleCarga", "_Medidas"]
+
+annotation PBI_ProTooling = ["DevMode"]
+
+ref table _Medidas
+ref table dCalendario
+ref table dIndicador
+ref table dGrupoIPCA
+ref table dMeta
+ref table fIndicadores
+ref table fIPCAGrupos
+ref table fExpectativas
+ref table _ControleCarga
+
+ref cultureInfo pt-BR
+
