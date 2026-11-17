@@ -28,10 +28,10 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Python 3.12
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
         with:
           python-version: "3.12"
           cache: pip
@@ -53,13 +53,14 @@ jobs:
       - name: Extrair, validar e gravar a camada silver
         env:
           INFLACAO_RAIZ: ${{ github.workspace }}
+          TZ: America/Sao_Paulo      # data/hora da carga no horário de Brasília
         # Em qualquer falha (API fora do ar ou validação), o script sai com erro e não grava nada:
         # os Parquets anteriores continuam valendo e o GitHub avisa por e-mail.
         run: python extracao/main.py --inicio "${{ steps.periodo.outputs.inicio }}" --fim atual
 
       - name: Guardar logs da execução
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: logs-${{ github.run_id }}
           path: logs/
